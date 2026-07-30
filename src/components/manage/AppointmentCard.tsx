@@ -12,7 +12,12 @@ interface AppointmentCardProps {
 export function AppointmentCard({ appointment, role, onCancel, onComplete }: AppointmentCardProps) {
   const { service, professional, client_name, client_phone, starts_at, ends_at, created_via, status } = appointment
 
-  const whatsappMessage = `Hola ${client_name}! Te escribo por tu turno de ${service?.name} del ${new Date(starts_at).toLocaleDateString('es-AR')}.`
+  const apptDate = new Date(starts_at)
+  const dd = String(apptDate.getDate()).padStart(2, '0')
+  const mm = String(apptDate.getMonth() + 1).padStart(2, '0')
+  const hh = String(apptDate.getHours()).padStart(2, '0')
+  const min = String(apptDate.getMinutes()).padStart(2, '0')
+  const whatsappMessage = `Hola ${client_name}! Te escribo para recordarte el turno de ${service?.name} el día ${dd}/${mm} a las ${hh}:${min} ❤️`
 
   const isCompleted = status === 'completed'
   const isCancelled = status === 'cancelled'
