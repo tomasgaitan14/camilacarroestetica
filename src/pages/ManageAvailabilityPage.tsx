@@ -69,7 +69,7 @@ export default function ManageAvailabilityPage() {
         )}
       </main>
 
-      <BottomNav role="professional" />
+      <BottomNav role={profile.role} />
     </div>
   )
 }
