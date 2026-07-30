@@ -21,13 +21,9 @@ export default function CancelPage() {
     setLoading(true)
     setError(null)
 
-    const { data, error } = await supabase
-      .from('appointments')
-      .select('*, professional:staff_profiles(*), service:services(*)')
-      .eq('client_phone', phone.trim())
-      .eq('status', 'confirmed')
-      .gte('starts_at', new Date().toISOString())
-      .order('starts_at')
+    const { data, error } = await supabase.rpc('get_appointments_by_phone', {
+      phone_number: phone.trim(),
+    })
 
     if (error) {
       setError('No pudimos buscar tus turnos. Intentá de nuevo.')
