@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { supabase } from '@/lib/supabase'
 import type { UserRole } from '@/types'
 
 interface NavItem {
@@ -75,7 +75,12 @@ interface BottomNavProps {
 
 export function BottomNav({ role }: BottomNavProps) {
   const items = role === 'admin' ? ADMIN_ITEMS : PROFESSIONAL_ITEMS
-  const { signOut } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    navigate('/login')
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex safe-area-bottom"
@@ -94,7 +99,7 @@ export function BottomNav({ role }: BottomNavProps) {
         </NavLink>
       ))}
       <button
-        onClick={signOut}
+        onClick={handleSignOut}
         className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium text-neutral-400 transition-colors hover:text-red-500"
       >
         <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
