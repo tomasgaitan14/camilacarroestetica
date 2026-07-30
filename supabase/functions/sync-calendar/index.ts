@@ -100,6 +100,7 @@ Deno.serve(async (req: Request) => {
       }
 
     } else if ((payload.action === 'cancelled' || payload.action === 'rescheduled') && appt.google_event_id) {
+      // Elimina el evento del calendario
       await fetch(`${eventsUrl}/${appt.google_event_id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` },
