@@ -5,7 +5,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
-const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
+const GOOGLE_CALENDAR_BASE = 'https://www.googleapis.com/calendar/v3/calendars'
 
 interface SyncPayload {
   appointment_id: string
@@ -29,10 +29,10 @@ Deno.serve(async (req: Request) => {
 
     if (!appt) return new Response('Turno no encontrado', { status: 404 })
 
-    // Obtiene el refresh token de la profesional
+    // Obtiene el refresh token y calendar_id de la profesional
     const { data: tokenRow } = await supabase
       .from('staff_tokens')
-      .select('google_refresh_token')
+      .select('google_refresh_token, calendar_id')
       .eq('professional_id', appt.professional_id)
       .single()
 
@@ -61,12 +61,15 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: 'token_failed' }), { status: 200 })
     }
 
+    // Usa el calendario dedicado si existe, si no cae a primary
+    const calendarId = tokenRow.calendar_id ?? 'primary'
+    const eventsUrl = `${GOOGLE_CALENDAR_BASE}/${encodeURIComponent(calendarId)}/events`
+
     const eventTitle = `${appt.service.name} — ${appt.client_name}`
     const eventDescription = `Cliente: ${appt.client_name}\nTeléfono: ${appt.client_phone}\nReservado vía: ${appt.created_via}`
 
     if (payload.action === 'created') {
-      // Crea el evento en Google Calendar
-      const eventRes = await fetch(GOOGLE_CALENDAR_API, {
+      const eventRes = await fetch(eventsUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -75,8 +78,8 @@ Deno.serve(async (req: Request) => {
         body: JSON.stringify({
           summary: eventTitle,
           description: eventDescription,
-          start: { dateTime: appt.starts_at },
-          end: { dateTime: appt.ends_at },
+          start: { dateTime: appt.starts_at, timeZone: 'America/Argentina/Buenos_Aires' },
+          end: { dateTime: appt.ends_at, timeZone: 'America/Argentina/Buenos_Aires' },
           reminders: {
             useDefault: false,
             overrides: [
@@ -89,7 +92,6 @@ Deno.serve(async (req: Request) => {
 
       const event = await eventRes.json()
 
-      // Guarda el google_event_id en el turno
       if (event.id) {
         await supabase
           .from('appointments')
@@ -98,8 +100,7 @@ Deno.serve(async (req: Request) => {
       }
 
     } else if ((payload.action === 'cancelled' || payload.action === 'rescheduled') && appt.google_event_id) {
-      // Elimina el evento del calendario
-      await fetch(`${GOOGLE_CALENDAR_API}/${appt.google_event_id}`, {
+      await fetch(`${eventsUrl}/${appt.google_event_id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${accessToken}` },
       })
