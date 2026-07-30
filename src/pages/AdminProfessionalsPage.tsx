@@ -5,28 +5,41 @@ import { BottomNav } from '@/components/shared/BottomNav'
 import { Spinner } from '@/components/shared/Spinner'
 import type { StaffProfile } from '@/types'
 
+interface PendingUser {
+  id: string
+  email: string
+  created_at: string
+}
+
 export default function AdminProfessionalsPage() {
   const [professionals, setProfessionals] = useState<StaffProfile[]>([])
+  const [pending, setPending] = useState<PendingUser[]>([])
   const [loading, setLoading] = useState(true)
   const { services } = useServices()
 
   useEffect(() => {
-    fetchProfessionals()
+    fetchAll()
   }, [])
 
-  async function fetchProfessionals() {
+  async function fetchAll() {
     setLoading(true)
-    const { data } = await supabase
-      .from('staff_profiles')
-      .select('*')
-      .order('name')
-    setProfessionals((data as StaffProfile[]) ?? [])
+    const [profsRes, pendingRes] = await Promise.all([
+      supabase.from('staff_profiles').select('*').order('name'),
+      supabase.rpc('get_pending_staff'),
+    ])
+    setProfessionals((profsRes.data as StaffProfile[]) ?? [])
+    setPending((pendingRes.data as PendingUser[]) ?? [])
     setLoading(false)
+  }
+
+  async function handleApprove(user: PendingUser, name: string, role: 'professional' | 'admin') {
+    await supabase.from('staff_profiles').insert({ id: user.id, name, role })
+    fetchAll()
   }
 
   async function handleToggleActive(prof: StaffProfile) {
     await supabase.from('staff_profiles').update({ is_active: !prof.is_active }).eq('id', prof.id)
-    fetchProfessionals()
+    fetchAll()
   }
 
   return (
@@ -34,9 +47,6 @@ export default function AdminProfessionalsPage() {
       <header className="bg-white border-b border-neutral-100 px-4 py-3 sticky top-0 z-10">
         <div className="max-w-lg mx-auto">
           <h1 className="font-semibold text-neutral-900">Equipo</h1>
-          <p className="text-xs text-neutral-500 mt-0.5">
-            Para agregar una profesional, ella debe iniciar sesión con su cuenta de Google primero
-          </p>
         </div>
       </header>
 
@@ -44,26 +54,122 @@ export default function AdminProfessionalsPage() {
         {loading ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {professionals.length === 0 && (
-              <div className="text-center py-12 text-neutral-400 text-sm">
-                Ninguna profesional se registró aún.
+          <div className="flex flex-col gap-5">
+            {/* Pendientes de aprobación */}
+            {pending.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                  Pendientes de aprobación ({pending.length})
+                </p>
+                <div className="flex flex-col gap-3">
+                  {pending.map(user => (
+                    <PendingCard key={user.id} user={user} onApprove={handleApprove} />
+                  ))}
+                </div>
               </div>
             )}
-            {professionals.map(prof => (
-              <ProfessionalCard
-                key={prof.id}
-                prof={prof}
-                serviceOptions={services}
-                onToggleActive={handleToggleActive}
-                onUpdate={fetchProfessionals}
-              />
-            ))}
+
+            {/* Equipo activo */}
+            <div>
+              {pending.length > 0 && (
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-2">
+                  Equipo
+                </p>
+              )}
+              <div className="flex flex-col gap-3">
+                {professionals.length === 0 ? (
+                  <div className="text-center py-12 text-neutral-400 text-sm">
+                    Ninguna profesional en el equipo aún.
+                  </div>
+                ) : professionals.map(prof => (
+                  <ProfessionalCard
+                    key={prof.id}
+                    prof={prof}
+                    serviceOptions={services}
+                    onToggleActive={handleToggleActive}
+                    onUpdate={fetchAll}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </main>
 
       <BottomNav role="admin" />
+    </div>
+  )
+}
+
+interface PendingCardProps {
+  user: PendingUser
+  onApprove: (user: PendingUser, name: string, role: 'professional' | 'admin') => Promise<void>
+}
+
+function PendingCard({ user, onApprove }: PendingCardProps) {
+  const [name, setName] = useState('')
+  const [role, setRole] = useState<'professional' | 'admin'>('professional')
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return
+    setSaving(true)
+    await onApprove(user, name.trim(), role)
+    setSaving(false)
+  }
+
+  return (
+    <div className="card border-amber-200 bg-amber-50">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+          <svg viewBox="0 0 24 24" className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-neutral-800 truncate">{user.email}</p>
+          <p className="text-xs text-amber-600 font-medium">Esperando aprobación</p>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <input
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Nombre completo"
+          required
+          className="input text-sm py-2"
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setRole('professional')}
+            className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors
+              ${role === 'professional' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-neutral-600 border-neutral-200'}`}
+          >
+            Profesional
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole('admin')}
+            className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-colors
+              ${role === 'admin' ? 'bg-brand-500 text-white border-brand-500' : 'bg-white text-neutral-600 border-neutral-200'}`}
+          >
+            Admin
+          </button>
+        </div>
+        <button
+          type="submit"
+          disabled={saving || !name.trim()}
+          className="btn-primary text-sm py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {saving && <Spinner size="sm" className="border-white/40 border-t-white" />}
+          Agregar al equipo
+        </button>
+      </form>
     </div>
   )
 }
