@@ -3,7 +3,7 @@ interface StepIndicatorProps {
   total: number
 }
 
-const STEP_LABELS = ['Servicio', 'Profesional', 'Horario', 'Confirmar']
+const STEP_LABELS = ['Servicio', 'Horario', 'Confirmar']
 
 export function StepIndicator({ current, total }: StepIndicatorProps) {
   return (

@@ -50,26 +50,32 @@ export function useAppointments(options: UseAppointmentsOptions = {}) {
   return { appointments, loading, error, refresh: fetchAppointments }
 }
 
-export function useAvailability(professionalId: string | null) {
+export function useAvailability(professionalIds: string[]) {
   const [availability, setAvailability] = useState<import('@/types').Availability[]>([])
   const [blockedDates, setBlockedDates] = useState<import('@/types').BlockedDate[]>([])
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (!professionalId) return
-    fetchAvailability(professionalId)
-  }, [professionalId])
+  const key = professionalIds.join(',')
 
-  async function fetchAvailability(pid: string) {
+  useEffect(() => {
+    if (professionalIds.length === 0) {
+      setAvailability([])
+      setBlockedDates([])
+      return
+    }
+    fetchAvailability(professionalIds)
+  }, [key])
+
+  async function fetchAvailability(pids: string[]) {
     setLoading(true)
     const [availRes, blockedRes] = await Promise.all([
-      supabase.from('availability').select('*').eq('professional_id', pid),
-      supabase.from('blocked_dates').select('*').eq('professional_id', pid),
+      supabase.from('availability').select('*').in('professional_id', pids),
+      supabase.from('blocked_dates').select('*').in('professional_id', pids),
     ])
     setAvailability(availRes.data ?? [])
     setBlockedDates(blockedRes.data ?? [])
     setLoading(false)
   }
 
-  return { availability, blockedDates, loading, refresh: () => professionalId && fetchAvailability(professionalId) }
+  return { availability, blockedDates, loading, refresh: () => professionalIds.length > 0 && fetchAvailability(professionalIds) }
 }

@@ -4,6 +4,7 @@ import { format, isBefore, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useBookingStore } from '@/store/bookingStore'
 import { useAvailability, useAppointments } from '@/hooks/useAppointments'
+import { useProfessionalsForService } from '@/hooks/useServices'
 import { useServices } from '@/hooks/useServices'
 import { generateTimeSlots, formatTime, DAY_LABELS } from '@/lib/utils'
 import { Spinner } from '@/components/shared/Spinner'
@@ -14,30 +15,39 @@ interface Step3DateTimeProps {
 }
 
 export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
-  const { selectedProfessionalId, selectedServiceId, selectedDate, selectedSlot, setDate, setSlot } = useBookingStore()
+  const { selectedServiceId, selectedDate, selectedSlot, setProfessional, setDate, setSlot } = useBookingStore()
   const [localDate, setLocalDate] = useState<Date | undefined>(selectedDate ?? undefined)
 
-  const { availability, blockedDates, loading: availLoading } = useAvailability(selectedProfessionalId)
+  const { professionals, loading: prosLoading } = useProfessionalsForService(selectedServiceId)
+  const professionalIds = professionals.map(p => p.id)
+
+  const { availability, blockedDates, loading: availLoading } = useAvailability(professionalIds)
   const { services } = useServices()
   const selectedService = services.find(s => s.id === selectedServiceId)
 
   const dateFrom = localDate ? format(localDate, 'yyyy-MM-dd') + 'T00:00:00' : undefined
   const dateTo = localDate ? format(localDate, 'yyyy-MM-dd') + 'T23:59:59' : undefined
 
+  // Carga todos los turnos del día sin filtrar por profesional
   const { appointments, loading: apptLoading } = useAppointments({
-    professionalId: selectedProfessionalId ?? undefined,
     dateFrom,
     dateTo,
+    statuses: ['confirmed'],
   })
 
-  const blockedDateStrings = blockedDates.map(b => b.date)
   const availableDaysOfWeek = [...new Set(availability.map(a => a.day_of_week))]
 
   function isDayDisabled(date: Date): boolean {
     if (isBefore(date, startOfDay(new Date()))) return true
-    if (!availableDaysOfWeek.includes(date.getDay())) return true
-    if (blockedDateStrings.includes(format(date, 'yyyy-MM-dd'))) return true
-    return false
+    const dateStr = format(date, 'yyyy-MM-dd')
+    const dayOfWeek = date.getDay()
+
+    // Al menos un profesional debe tener ese día disponible y no bloqueado
+    return !professionals.some(prof => {
+      const hasAvail = availability.some(a => a.professional_id === prof.id && a.day_of_week === dayOfWeek)
+      if (!hasAvail) return false
+      return !blockedDates.some(b => b.professional_id === prof.id && b.date === dateStr)
+    })
   }
 
   function handleDateSelect(date: Date | undefined) {
@@ -47,16 +57,44 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
     setSlot(null as unknown as string)
   }
 
+  // Genera slots por profesional y los fusiona: disponible si al menos uno está libre
+  const mergedSlots = (() => {
+    if (!localDate || !selectedService || professionals.length === 0) return []
+
+    const slotsPerPro = professionals.map(prof => ({
+      professionalId: prof.id,
+      slots: generateTimeSlots(
+        localDate,
+        availability.filter(a => a.professional_id === prof.id),
+        appointments.filter(a => a.professional_id === prof.id),
+        selectedService.duration_minutes,
+      ),
+    }))
+
+    const allTimes = [...new Set(slotsPerPro.flatMap(p => p.slots.map(s => s.time)))].sort()
+
+    return allTimes.map(time => {
+      let professionalId: string | null = null
+      for (const { professionalId: pId, slots } of slotsPerPro) {
+        if (slots.find(s => s.time === time)?.available) {
+          professionalId = pId
+          break
+        }
+      }
+      return { time, available: professionalId !== null, professionalId }
+    })
+  })()
+
+  const availableSlots = mergedSlots.filter(s => s.available)
+
   function handleSlotSelect(time: string) {
+    const slot = mergedSlots.find(s => s.time === time)
+    if (slot?.professionalId) setProfessional(slot.professionalId)
     setSlot(time)
     onNext()
   }
 
-  const slots = localDate && selectedService
-    ? generateTimeSlots(localDate, availability, appointments, selectedService.duration_minutes)
-    : []
-
-  const availableSlots = slots.filter(s => s.available)
+  const isLoading = prosLoading || availLoading
 
   return (
     <div>
@@ -72,7 +110,7 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
         Días disponibles: {availableDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
       </p>
 
-      {availLoading ? (
+      {isLoading ? (
         <div className="flex justify-center py-8"><Spinner /></div>
       ) : (
         <>

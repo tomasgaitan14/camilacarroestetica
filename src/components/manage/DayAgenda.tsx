@@ -12,10 +12,9 @@ interface DayAgendaProps {
   role: UserRole
   onDateChange: (date: Date) => void
   onCancel?: (id: string) => void
-  onComplete?: (id: string) => void
 }
 
-export function DayAgenda({ date, appointments, loading, role, onDateChange, onCancel, onComplete }: DayAgendaProps) {
+export function DayAgenda({ date, appointments, loading, role, onDateChange, onCancel }: DayAgendaProps) {
   const todayAppointments = appointments.filter(a => isSameDay(new Date(a.starts_at), date))
 
   return (
@@ -81,7 +80,6 @@ export function DayAgenda({ date, appointments, loading, role, onDateChange, onC
               appointment={appt}
               role={role}
               onCancel={onCancel}
-              onComplete={onComplete}
             />
           ))}
         </div>

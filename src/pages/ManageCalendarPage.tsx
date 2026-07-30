@@ -34,11 +34,6 @@ export default function ManageCalendarPage() {
     refresh()
   }
 
-  async function handleComplete(appointmentId: string) {
-    await supabase.from('appointments').update({ status: 'completed' }).eq('id', appointmentId)
-    refresh()
-  }
-
   if (!profile) return null
 
   return (
@@ -71,7 +66,6 @@ export default function ManageCalendarPage() {
           role="professional"
           onDateChange={setSelectedDate}
           onCancel={handleCancel}
-          onComplete={handleComplete}
         />
       </main>
 

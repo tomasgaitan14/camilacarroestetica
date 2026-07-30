@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Step1Service } from '@/components/booking/Step1Service'
-import { Step2Professional } from '@/components/booking/Step2Professional'
 import { Step3DateTime } from '@/components/booking/Step3DateTime'
 import { Step4Confirm } from '@/components/booking/Step4Confirm'
 import { SuccessScreen } from '@/components/booking/SuccessScreen'
 import { StepIndicator } from '@/components/booking/StepIndicator'
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 3
 
 export default function BookingPage() {
   const [step, setStep] = useState(1)
@@ -53,9 +52,8 @@ export default function BookingPage() {
             <StepIndicator current={step} total={TOTAL_STEPS} />
 
             {step === 1 && <Step1Service onNext={next} />}
-            {step === 2 && <Step2Professional onNext={next} onBack={back} />}
-            {step === 3 && <Step3DateTime onNext={next} onBack={back} />}
-            {step === 4 && <Step4Confirm onBack={back} onSuccess={handleSuccess} />}
+            {step === 2 && <Step3DateTime onNext={next} onBack={back} />}
+            {step === 3 && <Step4Confirm onBack={back} onSuccess={handleSuccess} />}
           </>
         )}
       </main>

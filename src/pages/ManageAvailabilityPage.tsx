@@ -11,7 +11,7 @@ const DAYS = [1, 2, 3, 4, 5, 6, 0]  // lun–dom
 
 export default function ManageAvailabilityPage() {
   const { profile } = useAuthStore()
-  const { availability, loading, refresh } = useAvailability(profile?.id ?? null)
+  const { availability, loading, refresh } = useAvailability(profile?.id ? [profile.id] : [])
   const [saving, setSaving] = useState(false)
 
   if (!profile) return null

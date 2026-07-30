@@ -6,10 +6,9 @@ interface AppointmentCardProps {
   appointment: Appointment
   role: UserRole
   onCancel?: (id: string) => void
-  onComplete?: (id: string) => void
 }
 
-export function AppointmentCard({ appointment, role, onCancel, onComplete }: AppointmentCardProps) {
+export function AppointmentCard({ appointment, role, onCancel }: AppointmentCardProps) {
   const { service, professional, client_name, client_phone, starts_at, ends_at, created_via, status } = appointment
 
   const apptDate = new Date(starts_at)
@@ -62,27 +61,14 @@ export function AppointmentCard({ appointment, role, onCancel, onComplete }: App
           <InstagramButton handle={professional.instagram_handle} compact />
         )}
 
-        {!isCompleted && !isCancelled && (
-          <div className="ml-auto flex items-center gap-2">
-            {onComplete && (
-              <button
-                onClick={() => onComplete(appointment.id)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-green-300 bg-green-50 text-green-700 text-xs font-semibold active:bg-green-100"
-              >
-                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
-                </svg>
-                Realizado
-              </button>
-            )}
-            {onCancel && (
-              <button
-                onClick={() => onCancel(appointment.id)}
-                className="px-3 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-600 text-xs font-semibold active:bg-red-100"
-              >
-                Cancelar
-              </button>
-            )}
+        {!isCompleted && !isCancelled && onCancel && (
+          <div className="ml-auto">
+            <button
+              onClick={() => onCancel(appointment.id)}
+              className="px-3 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-600 text-xs font-semibold active:bg-red-100"
+            >
+              Cancelar
+            </button>
           </div>
         )}
       </div>
