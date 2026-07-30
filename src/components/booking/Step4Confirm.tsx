@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { format, parse, addMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useBookingStore } from '@/store/bookingStore'
 import { useServices } from '@/hooks/useServices'
 import { supabase } from '@/lib/supabase'
 import { Spinner } from '@/components/shared/Spinner'
+import { capitalizeFirst } from '@/lib/utils'
 
 interface Step4ConfirmProps {
   onBack: () => void
@@ -22,6 +23,20 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nameSuggestion, setNameSuggestion] = useState<string | null>(null)
+  const phoneDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handlePhoneChange(phone: string) {
+    setClientPhone(phone)
+    setNameSuggestion(null)
+    if (phoneDebounce.current) clearTimeout(phoneDebounce.current)
+    if (phone.trim().length >= 8) {
+      phoneDebounce.current = setTimeout(async () => {
+        const { data } = await supabase.rpc('get_client_by_phone', { phone_number: phone.trim() })
+        if (data?.[0]?.client_name) setNameSuggestion(data[0].client_name)
+      }, 350)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -98,7 +113,7 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
           )}
           <div className="border-t border-brand-100 mt-1 pt-2">
             <span className="text-neutral-500 block">Fecha y hora</span>
-            <span className="font-semibold text-neutral-800 capitalize">{slotDisplay}</span>
+            <span className="font-semibold text-neutral-800">{capitalizeFirst(slotDisplay)}</span>
           </div>
         </div>
       </div>
@@ -124,14 +139,29 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
           <input
             type="tel"
             value={clientPhone}
-            onChange={e => setClientPhone(e.target.value)}
+            onChange={e => handlePhoneChange(e.target.value)}
             required
             minLength={8}
             maxLength={20}
             placeholder="Ej: 1123456789"
             className="input"
           />
-          <p className="text-xs text-neutral-400 mt-1">Lo usarás para cancelar o reprogramar si necesitás</p>
+          {nameSuggestion && !clientName && (
+            <button
+              type="button"
+              onClick={() => { setClientName(nameSuggestion); setNameSuggestion(null) }}
+              className="mt-1.5 text-xs text-brand-600 font-medium flex items-center gap-1"
+            >
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              Completar como "{nameSuggestion}"
+            </button>
+          )}
+          {!nameSuggestion && (
+            <p className="text-xs text-neutral-400 mt-1">Lo usarás para cancelar o reprogramar si necesitás</p>
+          )}
         </div>
 
         {error && (

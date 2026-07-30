@@ -40,7 +40,7 @@ export interface BlockedDate {
   reason: string | null
 }
 
-export type AppointmentStatus = 'confirmed' | 'cancelled' | 'rescheduled'
+export type AppointmentStatus = 'confirmed' | 'cancelled' | 'rescheduled' | 'completed'
 export type AppointmentSource = 'web' | 'manual'
 
 export interface Appointment {

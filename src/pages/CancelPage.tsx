@@ -114,7 +114,7 @@ export default function CancelPage() {
                     <div className="mb-3">
                       <p className="font-semibold text-neutral-900">{appt.service?.name}</p>
                       <p className="text-sm text-neutral-500 mt-0.5">con {appt.professional?.name}</p>
-                      <p className="text-sm text-neutral-600 mt-1 font-medium capitalize">
+                      <p className="text-sm text-neutral-600 mt-1 font-medium">
                         {formatDateTime(appt.starts_at)}
                       </p>
                     </div>
@@ -154,7 +154,7 @@ export default function CancelPage() {
             <div className="card mb-5 bg-red-50 border-red-100">
               <p className="font-semibold text-neutral-800">{selected.service?.name}</p>
               <p className="text-sm text-neutral-500 mt-0.5">con {selected.professional?.name}</p>
-              <p className="text-sm text-neutral-600 mt-1 font-medium capitalize">{formatDateTime(selected.starts_at)}</p>
+              <p className="text-sm text-neutral-600 mt-1 font-medium">{formatDateTime(selected.starts_at)}</p>
             </div>
 
             {error && (
@@ -188,7 +188,7 @@ export default function CancelPage() {
             <div className="card mb-5 bg-brand-50 border-brand-100">
               <p className="font-semibold text-neutral-800">{selected.service?.name}</p>
               <p className="text-sm text-neutral-500 mt-0.5">con {selected.professional?.name}</p>
-              <p className="text-sm text-neutral-600 mt-1 font-medium capitalize">{formatDateTime(selected.starts_at)}</p>
+              <p className="text-sm text-neutral-600 mt-1 font-medium">{formatDateTime(selected.starts_at)}</p>
             </div>
             <div className="flex flex-col gap-3">
               <button

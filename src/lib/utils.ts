@@ -9,6 +9,10 @@ export function formatDate(date: string | Date): string {
   return format(new Date(date), "d 'de' MMMM, yyyy", { locale: es })
 }
 
+export function capitalizeFirst(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
 export function formatTime(time: string): string {
   // time puede ser "HH:MM:SS" o "HH:MM"
   return time.slice(0, 5)
@@ -73,7 +77,7 @@ export function generateTimeSlots(
     }
   }
 
-  return slots
+  return slots.sort((a, b) => a.time.localeCompare(b.time))
 }
 
 /**

@@ -2,6 +2,7 @@ import { format, addDays, subDays, isSameDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { AppointmentCard } from './AppointmentCard'
 import { Spinner } from '@/components/shared/Spinner'
+import { capitalizeFirst } from '@/lib/utils'
 import type { Appointment, UserRole } from '@/types'
 
 interface DayAgendaProps {
@@ -11,9 +12,10 @@ interface DayAgendaProps {
   role: UserRole
   onDateChange: (date: Date) => void
   onCancel?: (id: string) => void
+  onComplete?: (id: string) => void
 }
 
-export function DayAgenda({ date, appointments, loading, role, onDateChange, onCancel }: DayAgendaProps) {
+export function DayAgenda({ date, appointments, loading, role, onDateChange, onCancel, onComplete }: DayAgendaProps) {
   const todayAppointments = appointments.filter(a => isSameDay(new Date(a.starts_at), date))
 
   return (
@@ -30,8 +32,8 @@ export function DayAgenda({ date, appointments, loading, role, onDateChange, onC
         </button>
 
         <div className="text-center">
-          <p className="font-bold text-neutral-900 capitalize">
-            {format(date, "EEEE d 'de' MMMM", { locale: es })}
+          <p className="font-bold text-neutral-900">
+            {capitalizeFirst(format(date, "EEEE d 'de' MMMM", { locale: es }))}
           </p>
           {isSameDay(date, new Date()) && (
             <span className="text-xs text-brand-500 font-medium">Hoy</span>
@@ -79,6 +81,7 @@ export function DayAgenda({ date, appointments, loading, role, onDateChange, onC
               appointment={appt}
               role={role}
               onCancel={onCancel}
+              onComplete={onComplete}
             />
           ))}
         </div>

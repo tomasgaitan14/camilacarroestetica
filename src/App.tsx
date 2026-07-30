@@ -16,6 +16,7 @@ import ManageAvailabilityPage from '@/pages/ManageAvailabilityPage'
 import AdminCalendarPage from '@/pages/AdminCalendarPage'
 import AdminServicesPage from '@/pages/AdminServicesPage'
 import AdminProfessionalsPage from '@/pages/AdminProfessionalsPage'
+import AdminStatsPage from '@/pages/AdminStatsPage'
 
 interface ProtectedProps {
   children: React.ReactNode
@@ -56,6 +57,9 @@ export default function App() {
         <Route path="/manage/availability" element={
           <Protected><ManageAvailabilityPage /></Protected>
         } />
+        <Route path="/manage/stats" element={
+          <Protected><AdminStatsPage /></Protected>
+        } />
 
         {/* Panel admin */}
         <Route path="/admin/calendar" element={
@@ -66,6 +70,9 @@ export default function App() {
         } />
         <Route path="/admin/professionals" element={
           <Protected requiredRole="admin"><AdminProfessionalsPage /></Protected>
+        } />
+        <Route path="/admin/stats" element={
+          <Protected requiredRole="admin"><AdminStatsPage /></Protected>
         } />
 
         {/* Fallback */}

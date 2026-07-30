@@ -3,9 +3,10 @@ import { supabase } from '@/lib/supabase'
 import type { Appointment } from '@/types'
 
 interface UseAppointmentsOptions {
-  professionalId?: string  // si no se pasa, trae todos (admin)
-  dateFrom?: string        // ISO string
+  professionalId?: string
+  dateFrom?: string
   dateTo?: string
+  statuses?: string[]  // default: ['confirmed', 'completed']
 }
 
 export function useAppointments(options: UseAppointmentsOptions = {}) {
@@ -15,10 +16,11 @@ export function useAppointments(options: UseAppointmentsOptions = {}) {
 
   useEffect(() => {
     fetchAppointments()
-  }, [options.professionalId, options.dateFrom, options.dateTo])
+  }, [options.professionalId, options.dateFrom, options.dateTo, (options.statuses ?? []).join(',')])
 
   async function fetchAppointments() {
     setLoading(true)
+    const statuses = options.statuses ?? ['confirmed', 'completed']
     let query = supabase
       .from('appointments')
       .select(`
@@ -26,7 +28,7 @@ export function useAppointments(options: UseAppointmentsOptions = {}) {
         professional:staff_profiles(*),
         service:services(*)
       `)
-      .in('status', ['confirmed'])
+      .in('status', statuses)
       .order('starts_at')
 
     if (options.professionalId) {

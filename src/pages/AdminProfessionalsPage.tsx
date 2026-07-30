@@ -130,7 +130,7 @@ function ProfessionalCard({ prof, serviceOptions, onToggleActive, onUpdate }: Pr
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-neutral-900 text-sm">{prof.name}</p>
-          <p className="text-xs text-neutral-500 capitalize">{prof.role}</p>
+          <p className="text-xs text-neutral-500">{prof.role === 'admin' ? 'Administradora' : 'Profesional'}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium
@@ -165,7 +165,7 @@ function ProfessionalCard({ prof, serviceOptions, onToggleActive, onUpdate }: Pr
                   type="text"
                   value={editInsta}
                   onChange={e => setEditInsta(e.target.value)}
-                  placeholder="Instagram (@handle)"
+                  placeholder="Instagram (@usuario)"
                   className="input text-sm py-2"
                 />
               )}
