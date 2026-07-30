@@ -30,9 +30,16 @@ export default function AdminCalendarPage() {
   })
   const professionals = Array.from(profMap.entries()).map(([id, name]) => ({ id, name }))
 
-  async function handleCancel(appointmentId: string) {
-    if (!window.confirm('¿Cancelar este turno?')) return
-    await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appointmentId)
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
+
+  function handleCancel(appointmentId: string) {
+    setConfirmCancelId(appointmentId)
+  }
+
+  async function doCancel() {
+    if (!confirmCancelId) return
+    await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', confirmCancelId)
+    setConfirmCancelId(null)
     refresh()
   }
 
@@ -100,6 +107,37 @@ export default function AdminCalendarPage() {
       </main>
 
       <BottomNav role="admin" />
+
+      {confirmCancelId && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+          onClick={() => setConfirmCancelId(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-t-2xl px-4 pt-5 pb-8 safe-area-bottom"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-neutral-200 mx-auto mb-5" />
+            <p className="text-base font-bold text-neutral-900 mb-1">¿Cancelar este turno?</p>
+            <p className="text-sm text-neutral-500 mb-5">Esta acción no se puede deshacer.</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={doCancel}
+                className="w-full py-3 rounded-2xl bg-red-500 text-white text-sm font-semibold active:bg-red-600"
+              >
+                Sí, cancelar turno
+              </button>
+              <button
+                onClick={() => setConfirmCancelId(null)}
+                className="w-full py-3 rounded-2xl bg-neutral-100 text-neutral-700 text-sm font-semibold active:bg-neutral-200"
+              >
+                Volver
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showNewModal && profile && (
         <NewAppointmentModal

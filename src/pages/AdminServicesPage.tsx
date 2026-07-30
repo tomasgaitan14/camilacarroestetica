@@ -10,6 +10,23 @@ export default function AdminServicesPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', duration_minutes: 60, display_price: '' })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', description: '', duration_minutes: 60, display_price: '' })
+
+  function startEdit(service: Service) {
+    setEditingId(service.id)
+    setEditForm({
+      name: service.name,
+      description: service.description ?? '',
+      duration_minutes: service.duration_minutes,
+      display_price: service.display_price ?? '',
+    })
+    setShowForm(false)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -22,6 +39,21 @@ export default function AdminServicesPage() {
     })
     setForm({ name: '', description: '', duration_minutes: 60, display_price: '' })
     setShowForm(false)
+    await refresh()
+    setSaving(false)
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingId) return
+    setSaving(true)
+    await supabase.from('services').update({
+      name: editForm.name.trim(),
+      description: editForm.description.trim() || null,
+      duration_minutes: editForm.duration_minutes,
+      display_price: editForm.display_price.trim() || null,
+    }).eq('id', editingId)
+    setEditingId(null)
     await refresh()
     setSaving(false)
   }
@@ -119,27 +151,93 @@ export default function AdminServicesPage() {
             )}
             {services.map(service => (
               <div key={service.id} className={`card ${!service.is_active ? 'opacity-50' : ''}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-neutral-900">{service.name}</p>
-                    {service.description && (
-                      <p className="text-sm text-neutral-500 mt-0.5">{service.description}</p>
-                    )}
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <span className="text-xs text-neutral-400">{service.duration_minutes} min</span>
-                      {service.display_price && (
-                        <span className="text-xs font-semibold text-brand-600">{service.display_price}</span>
+                {editingId === service.id ? (
+                  <form onSubmit={handleUpdate} className="flex flex-col gap-3">
+                    <h3 className="font-semibold text-neutral-800">Editar servicio</h3>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                      required
+                      placeholder="Nombre del servicio"
+                      className="input"
+                    />
+                    <input
+                      type="text"
+                      value={editForm.description}
+                      onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                      placeholder="Descripción (opcional)"
+                      className="input"
+                    />
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs text-neutral-500 mb-1 block">Duración (min)</label>
+                        <input
+                          type="number"
+                          value={editForm.duration_minutes}
+                          onChange={e => setEditForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
+                          required
+                          min={15}
+                          max={480}
+                          className="input"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-xs text-neutral-500 mb-1 block">Precio (display)</label>
+                        <input
+                          type="text"
+                          value={editForm.display_price}
+                          onChange={e => setEditForm(f => ({ ...f, display_price: e.target.value }))}
+                          placeholder="Ej: $ 5.000"
+                          className="input"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2">
+                        {saving && <Spinner size="sm" className="border-white/40 border-t-white" />}
+                        Guardar
+                      </button>
+                      <button type="button" onClick={cancelEdit} className="btn-secondary !w-auto px-5">
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-neutral-900">{service.name}</p>
+                      {service.description && (
+                        <p className="text-sm text-neutral-500 mt-0.5">{service.description}</p>
                       )}
+                      <div className="flex items-center gap-3 mt-1.5">
+                        <span className="text-xs text-neutral-400">{service.duration_minutes} min</span>
+                        {service.display_price && (
+                          <span className="text-xs font-semibold text-brand-600">{service.display_price}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => startEdit(service)}
+                        className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+                        title="Editar"
+                      >
+                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleToggleActive(service)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium
+                          ${service.is_active ? 'bg-green-50 text-green-600' : 'bg-neutral-100 text-neutral-500'}`}
+                      >
+                        {service.is_active ? 'Activo' : 'Inactivo'}
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleToggleActive(service)}
-                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium
-                      ${service.is_active ? 'bg-green-50 text-green-600' : 'bg-neutral-100 text-neutral-500'}`}
-                  >
-                    {service.is_active ? 'Activo' : 'Inactivo'}
-                  </button>
-                </div>
+                )}
               </div>
             ))}
           </div>
