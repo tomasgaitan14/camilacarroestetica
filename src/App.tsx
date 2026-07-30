@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { useAuthStore } from '@/store/authStore'
 import { FullPageSpinner } from '@/components/shared/Spinner'
 import type { UserRole } from '@/types'
 
@@ -22,7 +23,8 @@ interface ProtectedProps {
 }
 
 function Protected({ children, requiredRole }: ProtectedProps) {
-  const { profile, isLoading } = useAuth()
+  // Lee del store directamente — la inicialización ya la hizo App con useAuth()
+  const { profile, isLoading } = useAuthStore()
 
   if (isLoading) return <FullPageSpinner />
   if (!profile) return <Navigate to="/login" replace />
