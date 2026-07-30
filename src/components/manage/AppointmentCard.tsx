@@ -17,7 +17,8 @@ export function AppointmentCard({ appointment, role, onCancel, onComplete }: App
   const mm = String(apptDate.getMonth() + 1).padStart(2, '0')
   const hh = String(apptDate.getHours()).padStart(2, '0')
   const min = String(apptDate.getMinutes()).padStart(2, '0')
-  const whatsappMessage = `Hola ${client_name}! Te escribo para recordarte el turno de ${service?.name} el día ${dd}/${mm} a las ${hh}:${min} ❤️`
+  const firstName = client_name.split(' ')[0]
+  const whatsappMessage = `Hola ${firstName}! Te escribo para recordarte el turno de ${service?.name} el día ${dd}/${mm} a las ${hh}:${min}hs ❤️`
 
   const isCompleted = status === 'completed'
   const isCancelled = status === 'cancelled'
