@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { DayPicker } from 'react-day-picker'
 import { format, isBefore, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
-import 'react-day-picker/dist/style.css'
 import { useBookingStore } from '@/store/bookingStore'
 import { useAvailability, useAppointments } from '@/hooks/useAppointments'
 import { useServices } from '@/hooks/useServices'
@@ -78,26 +77,37 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
       ) : (
         <>
           {/* Calendario */}
-          <div className="card mb-4 overflow-hidden p-0">
+          <div className="card mb-4 overflow-hidden !p-0">
             <DayPicker
               mode="single"
               selected={localDate}
               onSelect={handleDateSelect}
               locale={es}
               disabled={isDayDisabled}
-              className="!m-0 w-full"
+              showOutsideDays
               classNames={{
-                root: 'w-full',
                 months: 'w-full',
-                month: 'w-full',
-                table: 'w-full',
-                head_cell: 'text-neutral-400 text-xs font-medium py-2',
-                cell: 'text-center',
-                button: 'w-9 h-9 rounded-full text-sm mx-auto flex items-center justify-center hover:bg-brand-50 transition-colors',
-                day_selected: '!bg-brand-500 !text-white',
-                day_disabled: '!text-neutral-200',
-                day_today: 'font-bold border border-brand-300',
-                nav_button: 'p-2 rounded-full hover:bg-neutral-100',
+                month: 'w-full pb-4',
+                caption: 'flex items-center justify-between px-4 pt-4 pb-1',
+                caption_label: 'text-sm font-bold text-neutral-900 capitalize',
+                nav: 'flex items-center gap-1',
+                nav_button: 'w-8 h-8 flex items-center justify-center rounded-full hover:bg-neutral-100 transition-colors text-neutral-400 hover:text-neutral-600',
+                nav_button_previous: '',
+                nav_button_next: '',
+                table: 'w-full border-collapse',
+                head_row: '',
+                head_cell: 'text-xs font-medium text-neutral-400 text-center py-2 w-[14.28%]',
+                row: '',
+                cell: 'text-center py-0.5 w-[14.28%]',
+                day: [
+                  'w-9 h-9 rounded-full text-sm font-medium mx-auto',
+                  'flex items-center justify-center transition-colors',
+                  'text-neutral-700 hover:bg-brand-50 hover:text-brand-600 cursor-pointer',
+                ].join(' '),
+                day_selected: '!bg-brand-500 !text-white hover:!bg-brand-600 shadow-sm',
+                day_today: '!font-bold ring-1 ring-brand-400 !text-brand-600',
+                day_disabled: '!text-neutral-200 hover:!bg-transparent cursor-default',
+                day_outside: '!text-neutral-300 hover:!bg-transparent cursor-default',
               }}
             />
           </div>
