@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import type { UserRole } from '@/types'
 
 interface NavItem {
@@ -74,6 +75,7 @@ interface BottomNavProps {
 
 export function BottomNav({ role }: BottomNavProps) {
   const items = role === 'admin' ? ADMIN_ITEMS : PROFESSIONAL_ITEMS
+  const { signOut } = useAuth()
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex safe-area-bottom"
@@ -91,6 +93,17 @@ export function BottomNav({ role }: BottomNavProps) {
           <span>{item.label}</span>
         </NavLink>
       ))}
+      <button
+        onClick={signOut}
+        className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium text-neutral-400 transition-colors hover:text-red-500"
+      >
+        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        <span>Salir</span>
+      </button>
     </nav>
   )
 }
