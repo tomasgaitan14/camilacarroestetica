@@ -20,6 +20,11 @@ export default function BookingPage() {
     setConfirmedId(id)
   }
 
+  function handleNewBooking() {
+    setConfirmedId(null)
+    setStep(1)
+  }
+
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
       {/* Header */}
@@ -42,7 +47,7 @@ export default function BookingPage() {
       {/* Contenido */}
       <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full">
         {confirmedId ? (
-          <SuccessScreen appointmentId={confirmedId} />
+          <SuccessScreen appointmentId={confirmedId} onNewBooking={handleNewBooking} />
         ) : (
           <>
             <StepIndicator current={step} total={TOTAL_STEPS} />

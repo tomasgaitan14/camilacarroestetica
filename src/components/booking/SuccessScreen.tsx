@@ -1,22 +1,21 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useBookingStore } from '@/store/bookingStore'
 
 interface SuccessScreenProps {
   appointmentId: string
+  onNewBooking: () => void
 }
 
-export function SuccessScreen({ appointmentId: _appointmentId }: SuccessScreenProps) {
-  const navigate = useNavigate()
+export function SuccessScreen({ appointmentId: _appointmentId, onNewBooking }: SuccessScreenProps) {
   const { reset } = useBookingStore()
 
   function handleNewBooking() {
     reset()
-    navigate('/booking', { replace: true })
+    onNewBooking()
   }
 
   return (
     <div className="flex flex-col items-center text-center py-8">
-      {/* Ícono de check animado */}
       <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-5">
         <svg viewBox="0 0 24 24" className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
