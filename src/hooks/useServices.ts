@@ -2,23 +2,21 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Service, StaffProfile } from '@/types'
 
-export function useServices() {
+export function useServices(includeInactive = false) {
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchServices()
-  }, [])
+  }, [includeInactive])
 
   async function fetchServices() {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('services')
-      .select('*')
-      .eq('is_active', true)
-      .order('name')
+    let query = supabase.from('services').select('*').order('name')
+    if (!includeInactive) query = query.eq('is_active', true)
 
+    const { data, error } = await query
     if (error) setError(error.message)
     else setServices(data as Service[])
     setLoading(false)

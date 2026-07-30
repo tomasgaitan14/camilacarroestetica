@@ -6,7 +6,7 @@ import { Spinner } from '@/components/shared/Spinner'
 import type { Service } from '@/types'
 
 export default function AdminServicesPage() {
-  const { services, loading, refresh } = useServices()
+  const { services, loading, refresh } = useServices(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', duration_minutes: 60, display_price: '' })
@@ -37,7 +37,7 @@ export default function AdminServicesPage() {
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div>
             <h1 className="font-semibold text-neutral-900">Servicios</h1>
-            <p className="text-xs text-neutral-500">{services.length} servicio{services.length !== 1 ? 's' : ''}</p>
+            <p className="text-xs text-neutral-500">{services.filter(s => s.is_active).length} activo{services.filter(s => s.is_active).length !== 1 ? 's' : ''}</p>
           </div>
           <button
             onClick={() => setShowForm(s => !s)}
