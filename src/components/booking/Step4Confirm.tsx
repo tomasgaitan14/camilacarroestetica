@@ -37,7 +37,10 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
     )
     const endsAt = addMinutes(startsAt, selectedService.duration_minutes)
 
-    const { data, error } = await supabase.from('appointments').insert({
+    const id = crypto.randomUUID()
+
+    const { error } = await supabase.from('appointments').insert({
+      id,
       professional_id: selectedProfessionalId,
       service_id: selectedServiceId,
       client_name: clientName.trim(),
@@ -45,7 +48,7 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),
       created_via: 'web',
-    }).select().single()
+    })
 
     if (error) {
       setError('Hubo un problema al reservar. Intentá de nuevo.')
@@ -53,7 +56,7 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
       return
     }
 
-    onSuccess(data.id)
+    onSuccess(id)
   }
 
   const slotDisplay = selectedDate && selectedSlot
