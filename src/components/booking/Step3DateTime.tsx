@@ -15,7 +15,7 @@ interface Step3DateTimeProps {
 }
 
 export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
-  const { selectedServiceId, selectedDate, selectedSlot, setProfessional, setDate, setSlot } = useBookingStore()
+  const { selectedServiceId, selectedDate, selectedSlot, setProfessionalSilent, setDate, setSlot } = useBookingStore()
   const [localDate, setLocalDate] = useState<Date | undefined>(selectedDate ?? undefined)
 
   const { professionals, loading: prosLoading } = useProfessionalsForService(selectedServiceId)
@@ -89,7 +89,7 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
 
   function handleSlotSelect(time: string) {
     const slot = mergedSlots.find(s => s.time === time)
-    if (slot?.professionalId) setProfessional(slot.professionalId)
+    if (slot?.professionalId) setProfessionalSilent(slot.professionalId)
     setSlot(time)
     onNext()
   }
