@@ -22,11 +22,15 @@ export function useAuth() {
       setSession(session)
 
       if (session?.user) {
-        // Guarda el refresh token de Google Calendar si está disponible
         if (session.provider_refresh_token && event === 'SIGNED_IN') {
           await saveGoogleRefreshToken(session.user.id, session.provider_refresh_token)
         }
-        await loadProfile(session.user.id)
+        // En TOKEN_REFRESHED solo actualizamos la sesión, no recargamos el perfil
+        if (event !== 'TOKEN_REFRESHED') {
+          await loadProfile(session.user.id)
+        } else {
+          setLoading(false)
+        }
       } else {
         setProfile(null)
         setLoading(false)
