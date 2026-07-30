@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import type { UserRole } from '@/types'
@@ -98,6 +99,7 @@ interface BottomNavProps {
 export function BottomNav({ role }: BottomNavProps) {
   const items = role === 'admin' ? ADMIN_ITEMS : PROFESSIONAL_ITEMS
   const navigate = useNavigate()
+  const [showConfirm, setShowConfirm] = useState(false)
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -105,32 +107,65 @@ export function BottomNav({ role }: BottomNavProps) {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex safe-area-bottom"
-         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          className={({ isActive }) =>
-            `flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors
-             ${isActive ? 'text-brand-500' : 'text-neutral-400'}`
-          }
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex safe-area-bottom"
+           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors
+               ${isActive ? 'text-brand-500' : 'text-neutral-400'}`
+            }
+          >
+            {item.icon}
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+        <button
+          onClick={() => setShowConfirm(true)}
+          className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium text-neutral-400 transition-colors hover:text-red-500"
         >
-          {item.icon}
-          <span>{item.label}</span>
-        </NavLink>
-      ))}
-      <button
-        onClick={handleSignOut}
-        className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium text-neutral-400 transition-colors hover:text-red-500"
-      >
-        <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-        <span>Salir</span>
-      </button>
-    </nav>
+          <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Salir</span>
+        </button>
+      </nav>
+
+      {showConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+          onClick={() => setShowConfirm(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-t-2xl px-4 pt-5 pb-8 safe-area-bottom"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-neutral-200 mx-auto mb-5" />
+            <p className="text-base font-bold text-neutral-900 mb-1">¿Cerrar sesión?</p>
+            <p className="text-sm text-neutral-500 mb-5">Tendrás que volver a iniciar sesión con Google para entrar.</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleSignOut}
+                className="w-full py-3 rounded-2xl bg-red-500 text-white text-sm font-semibold active:bg-red-600"
+              >
+                Sí, cerrar sesión
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="w-full py-3 rounded-2xl bg-neutral-100 text-neutral-700 text-sm font-semibold active:bg-neutral-200"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
