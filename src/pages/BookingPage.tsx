@@ -31,8 +31,11 @@ export default function BookingPage() {
           </div>
           <span className="font-semibold text-neutral-900 text-sm">Camila Carro Estética</span>
         </div>
-        <Link to="/cancel" className="text-xs text-neutral-500 underline underline-offset-2">
-          Cancelar turno
+        <Link
+          to="/cancel"
+          className="text-xs font-medium text-neutral-600 bg-neutral-100 hover:bg-neutral-200 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          Cancelar o reprogramar
         </Link>
       </header>
 
