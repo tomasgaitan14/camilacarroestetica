@@ -23,17 +23,20 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [nameSuggestion, setNameSuggestion] = useState<string | null>(null)
+  const [autoFilled, setAutoFilled] = useState(false)
   const phoneDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function handlePhoneChange(phone: string) {
     setClientPhone(phone)
-    setNameSuggestion(null)
+    setAutoFilled(false)
     if (phoneDebounce.current) clearTimeout(phoneDebounce.current)
     if (phone.trim().length >= 8) {
       phoneDebounce.current = setTimeout(async () => {
         const { data } = await supabase.rpc('get_client_by_phone', { phone_number: phone.trim() })
-        if (data?.[0]?.client_name) setNameSuggestion(data[0].client_name)
+        if (data?.[0]?.client_name) {
+          setClientName(data[0].client_name)
+          setAutoFilled(true)
+        }
       }, 350)
     }
   }
@@ -146,22 +149,15 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
             placeholder="Ej: 1123456789"
             className="input"
           />
-          {nameSuggestion && !clientName && (
-            <button
-              type="button"
-              onClick={() => { setClientName(nameSuggestion); setNameSuggestion(null) }}
-              className="mt-1.5 text-xs text-brand-600 font-medium flex items-center gap-1"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-              Completar como "{nameSuggestion}"
-            </button>
-          )}
-          {!nameSuggestion && (
-            <p className="text-xs text-neutral-400 mt-1">Lo usarás para cancelar o reprogramar si necesitás</p>
-          )}
+          {autoFilled
+            ? <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                Datos completados automáticamente
+              </p>
+            : <p className="text-xs text-neutral-400 mt-1">Lo usarás para cancelar o reprogramar si necesitás</p>
+          }
         </div>
 
         {error && (
