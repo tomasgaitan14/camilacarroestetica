@@ -6,14 +6,14 @@ import { Spinner } from '@/components/shared/Spinner'
 
 export default function LoginPage() {
   // Lee del store — la suscripción ya está manejada en App via useAuth()
-  const { profile, isLoading, session } = useAuthStore()
+  const { profile, initialized, session } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!isLoading && profile) {
+    if (initialized && profile) {
       navigate(profile.role === 'admin' ? '/admin/calendar' : '/manage/calendar', { replace: true })
     }
-  }, [profile, isLoading])
+  }, [profile, initialized])
 
   async function signInWithGoogle() {
     await supabase.auth.signInWithOAuth({
@@ -29,14 +29,14 @@ export default function LoginPage() {
     })
   }
 
-  if (isLoading) return (
+  if (!initialized) return (
     <div className="min-h-screen flex items-center justify-center">
       <Spinner size="lg" />
     </div>
   )
 
   // Usuario autenticado pero sin perfil en staff_profiles
-  const noAccess = !isLoading && session && !profile
+  const noAccess = initialized && session && !profile
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 px-6">

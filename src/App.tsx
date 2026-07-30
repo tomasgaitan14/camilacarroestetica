@@ -25,9 +25,9 @@ interface ProtectedProps {
 
 function Protected({ children, requiredRole }: ProtectedProps) {
   // Lee del store directamente — la inicialización ya la hizo App con useAuth()
-  const { profile, isLoading } = useAuthStore()
+  const { profile, initialized } = useAuthStore()
 
-  if (isLoading) return <FullPageSpinner />
+  if (!initialized) return <FullPageSpinner />
   if (!profile) return <Navigate to="/login" replace />
   if (requiredRole && profile.role !== requiredRole) {
     return <Navigate to={profile.role === 'admin' ? '/admin/calendar' : '/manage/calendar'} replace />

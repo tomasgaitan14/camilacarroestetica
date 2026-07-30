@@ -7,9 +7,11 @@ interface AuthStore {
   user: User | null
   profile: StaffProfile | null
   isLoading: boolean
+  initialized: boolean
   setSession: (session: Session | null) => void
   setProfile: (profile: StaffProfile | null) => void
   setLoading: (loading: boolean) => void
+  setInitialized: () => void
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -17,7 +19,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   profile: null,
   isLoading: true,
+  initialized: false,
   setSession: (session) => set({ session, user: session?.user ?? null }),
   setProfile: (profile) => set({ profile }),
   setLoading: (isLoading) => set({ isLoading }),
+  setInitialized: () => set({ initialized: true }),
 }))
