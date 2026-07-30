@@ -104,7 +104,7 @@ export default function AdminStatsPage() {
   const statusBadge = (status: string) => {
     if (status === 'completed') return <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Realizado</span>
     if (status === 'cancelled') return <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Cancelado</span>
-    return <span className="text-xs bg-brand-100 text-brand-600 px-2 py-0.5 rounded-full">Confirmado</span>
+    return <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">Confirmado</span>
   }
 
   return (
