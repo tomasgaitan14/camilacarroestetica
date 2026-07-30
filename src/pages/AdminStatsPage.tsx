@@ -30,12 +30,12 @@ function getRange(period: Period): { from: Date; to: Date } {
   }
 }
 
-function StatCard({ label, value, color = 'neutral' }: { label: string; value: number; color?: 'neutral' | 'green' | 'red' | 'brand' }) {
+function StatCard({ label, value, color = 'neutral' }: { label: string; value: number; color?: 'neutral' | 'green' | 'red' | 'blue' }) {
   const colors = {
     neutral: 'bg-neutral-50 text-neutral-700',
     green:   'bg-green-50 text-green-700',
     red:     'bg-red-50 text-red-600',
-    brand:   'bg-brand-50 text-brand-600',
+    blue:    'bg-blue-50 text-blue-600',
   }
   return (
     <div className={`flex-1 rounded-2xl px-4 py-3 ${colors[color]}`}>
@@ -160,7 +160,7 @@ export default function AdminStatsPage() {
             {/* Resumen */}
             <div className="flex gap-2 mb-5">
               <StatCard label="Total"       value={total}            color="neutral" />
-              <StatCard label="Confirmados" value={confirmed.length} color="brand" />
+              <StatCard label="Confirmados" value={confirmed.length} color="blue" />
               <StatCard label="Realizados"  value={completed.length} color="green" />
               <StatCard label="Cancelados"  value={cancelled.length} color="red" />
             </div>

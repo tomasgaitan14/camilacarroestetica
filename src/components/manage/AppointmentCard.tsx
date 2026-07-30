@@ -62,11 +62,11 @@ export function AppointmentCard({ appointment, role, onCancel, onComplete }: App
         )}
 
         {!isCompleted && !isCancelled && (
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2">
             {onComplete && (
               <button
                 onClick={() => onComplete(appointment.id)}
-                className="text-xs text-green-600 font-medium flex items-center gap-1"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-green-300 bg-green-50 text-green-700 text-xs font-semibold active:bg-green-100"
               >
                 <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
@@ -77,7 +77,7 @@ export function AppointmentCard({ appointment, role, onCancel, onComplete }: App
             {onCancel && (
               <button
                 onClick={() => onCancel(appointment.id)}
-                className="text-xs text-red-500 font-medium"
+                className="px-3 py-1.5 rounded-full border border-red-200 bg-red-50 text-red-600 text-xs font-semibold active:bg-red-100"
               >
                 Cancelar
               </button>
