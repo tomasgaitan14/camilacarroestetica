@@ -41,11 +41,25 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-neutral-50 px-6">
       <div className="mb-8 text-center">
-        <div className="w-20 h-20 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-brand-500 text-3xl font-bold">CC</span>
+        <img
+          src="/logo.png"
+          alt="Camila Carro Estética"
+          className="w-28 h-28 rounded-full mx-auto mb-4 object-cover"
+          onError={e => {
+            const t = e.currentTarget
+            t.style.display = 'none'
+            const fallback = document.getElementById('login-logo-fallback')
+            if (fallback) fallback.style.display = 'flex'
+          }}
+        />
+        <div
+          id="login-logo-fallback"
+          className="w-28 h-28 bg-brand-500 rounded-full items-center justify-center mx-auto mb-4 hidden"
+        >
+          <span className="text-white text-4xl font-bold">CC</span>
         </div>
         <h1 className="text-2xl font-bold text-neutral-900">Camila Carro</h1>
-        <p className="text-neutral-500 mt-1">Estética profesional</p>
+        <p className="text-neutral-500 mt-1">Estética y cuidado personal</p>
       </div>
 
       <div className="w-full max-w-sm card">

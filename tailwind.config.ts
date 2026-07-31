@@ -9,17 +9,17 @@ export default {
     extend: {
       colors: {
         brand: {
-          50:  '#fdf4f7',
-          100: '#fbe9f0',
-          200: '#f7d3e2',
-          300: '#f0adc8',
-          400: '#e57da8',
-          500: '#d4558a',  // color principal — ajustar con paleta real de Camila
-          600: '#b8396e',
-          700: '#9a2c59',
-          800: '#80264a',
-          900: '#6b2341',
-          950: '#3d1023',
+          50:  '#fdf5f5',
+          100: '#fae9ea',
+          200: '#f3d0d2',
+          300: '#e9b5b8',
+          400: '#e3a6a9',
+          500: '#dd9c9f',  // color Camila Carro
+          600: '#ca7e82',
+          700: '#a85c60',
+          800: '#84404A',
+          900: '#5c2c2e',
+          950: '#3b1c1e',
         },
         neutral: {
           50:  '#fafafa',

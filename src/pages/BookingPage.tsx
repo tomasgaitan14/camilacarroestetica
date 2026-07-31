@@ -29,10 +29,15 @@ export default function BookingPage() {
       {/* Header */}
       <header className="bg-white border-b border-neutral-100 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          {/* Logo placeholder */}
-          <div className="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center">
-            <span className="text-brand-500 text-xs font-bold">CC</span>
-          </div>
+          <img
+            src="/logo.png"
+            alt="Camila Carro"
+            className="w-8 h-8 rounded-full object-cover"
+            onError={e => {
+              const t = e.currentTarget
+              t.style.display = 'none'
+            }}
+          />
           <span className="font-semibold text-neutral-900 text-sm">Camila Carro Estética</span>
         </div>
         <Link
