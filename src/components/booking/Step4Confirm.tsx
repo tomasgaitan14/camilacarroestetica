@@ -69,7 +69,11 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
     })
 
     if (error) {
-      setError('Hubo un problema al reservar. Intentá de nuevo.')
+      const isOverlap = error.code === '23P01'
+      setError(isOverlap
+        ? 'Ese horario ya fue tomado. Volvé atrás y elegí otro.'
+        : 'Hubo un problema al reservar. Intentá de nuevo.'
+      )
       setSubmitting(false)
       return
     }

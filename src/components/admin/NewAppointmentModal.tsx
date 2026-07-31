@@ -84,7 +84,12 @@ export function NewAppointmentModal({ role, currentProfessionalId, onClose, onSa
       created_via: 'manual',
     })
 
-    if (error) { setError('No se pudo guardar el turno.'); setSaving(false); return }
+    if (error) {
+      const isOverlap = error.code === '23P01'
+      setError(isOverlap ? 'Ese horario ya está ocupado para esta profesional.' : 'No se pudo guardar el turno.')
+      setSaving(false)
+      return
+    }
     onSaved()
   }
 
