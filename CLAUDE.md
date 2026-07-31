@@ -43,7 +43,7 @@ GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
 
 ## Roles y flujos
 
-- **Cliente (anónimo)**: `/booking` → elige servicio → profesional → horario → reserva
+- **Cliente (anónimo)**: `/booking` → elige servicio → horario (auto-asigna profesional) → reserva
 - **Cliente cancelación**: `/cancel` → ingresa teléfono → cancela/reprograma (máx 24h antes)
 - **Profesional**: login Google → `/manage/calendar` + `/manage/availability`
 - **Admin (Camila)**: login Google → `/admin/calendar` + `/admin/services` + `/admin/professionals`
@@ -57,21 +57,45 @@ Cuando un turno se crea/cancela, se dispara la Edge Function `sync-calendar` que
 
 ## Estado actual
 
-MVP en desarrollo. Schema aplicado. Frontend scaffoldeado. Falta:
-- [ ] Aplicar migración SQL en Supabase
-- [ ] Configurar Google OAuth en Supabase Dashboard
-- [ ] Crear `.env` local con las keys reales
-- [ ] Configurar y deployar Edge Function `sync-calendar`
-- [ ] Conectar Supabase Webhooks para disparar sync-calendar
-- [ ] Subir logo y ajustar paleta de colores de Camila
-- [ ] Crear repo GitHub y conectar Vercel
+MVP funcional en producción. QA completado (2026-07-31). Todo deployado en Vercel + Supabase.
+
+## QA — lo que funciona y lo que NO romper
+
+### Flujos verificados ✅
+- **Booking público** (3 pasos: Servicio → Horario → Confirmar): auto-asigna profesional disponible al seleccionar el slot. Si el slot se pisó en paralelo, muestra error específico "Ese horario ya fue tomado".
+- **Cancel/reprogramar**: cliente ingresa teléfono → ve sus turnos futuros → puede cancelar (solo si es >24h antes).
+- **Admin calendar**: filtro por profesional, navegación por día, modal "+ Nuevo turno" manual, badge "Realizado" en completados, botón Cancelar.
+- **Servicios**: CRUD inline en `/admin/services`, edita nombre, descripción, duración y precio.
+- **Equipo**: asignación de servicios por profesional, toggle activo/inactivo, campos WhatsApp e Instagram (Instagram solo para rol admin).
+- **Horarios (availability)**: configuración de bloques por día de la semana, visible en `/manage/availability`.
+
+### Reglas de comportamiento críticas (NO romper)
+- El **paso de selección de profesional fue eliminado** del booking. El flujo es 3 pasos: Servicio → Horario → Confirmar. El profesional se auto-asigna al elegir un slot (`setProfessionalSilent`).
+- El **botón "Realizado" fue eliminado** de las cards. Solo queda el badge "Realizado" (read-only) y el botón "Cancelar".
+- El **botón Instagram en admin** está condicionado a que `professional.instagram_handle` no sea null. Camila debe configurarlo en la página Equipo. No es un bug — es configuración de datos.
+- El **botón WhatsApp** usa el teléfono del CLIENTE (no de la profesional) para contactar desde el panel. Siempre debe estar presente en turnos activos.
+- **No deben pisarse turnos**: hay un constraint en la DB (`no_overlapping_confirmed_appointments`) que impide dos turnos `confirmed` del mismo profesional en el mismo horario.
+- El **`authStore` usa `initialized`** (one-way flag) para mostrar el FullPageSpinner. El spinner solo aparece en la carga inicial, no en refreshes de token posteriores.
+- El **`setProfessionalSilent`** en bookingStore existe porque `setProfessional` hace cascade-reset de fecha y slot. Nunca reemplazar el primero por el segundo en el flujo de auto-assign.
+
+### Constraint de DB aplicado
+```sql
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+ALTER TABLE appointments ADD CONSTRAINT no_overlapping_confirmed_appointments
+EXCLUDE USING gist (
+  professional_id WITH =,
+  tstzrange(starts_at, ends_at, '[)') WITH &&
+) WHERE (status = 'confirmed');
+```
+El insert fallará con code `23P01` si hay overlap. Los forms muestran mensaje específico.
 
 ## Decisiones tomadas
 
 - **Sin Next.js**: no hay SSR/SEO crítico, Supabase cubre el backend
 - **Mobile-first**: bottom nav para staff, wizard de 1 paso/pantalla para booking
 - **Sin pago online**: el pago es siempre en persona
-- **Sin notificaciones automáticas push**: Google Calendar lo cubre para staff; para el cliente, botones manuales WhatsApp/Instagram
+- **Sin notificaciones automáticas**: Google Calendar lo cubre para staff al configurar el OAuth; para clientes, botones manuales WhatsApp
+- **Sin selección de profesional en booking**: se eliminó para simplificar el flujo; el sistema auto-asigna al primer profesional libre para ese slot
 
 ## Archivos clave
 
@@ -85,9 +109,7 @@ MVP en desarrollo. Schema aplicado. Frontend scaffoldeado. Falta:
 
 ## Próximos pasos
 
-1. Aplicar migración SQL
-2. Configurar Google OAuth en Supabase
-3. Ajustar branding (logo + colores reales de Camila)
-4. Modal "Nuevo turno" manual en panel de profesionales/admin
-5. Configurar Webhooks de Supabase para `sync-calendar`
-6. Deploy en Vercel
+1. Ajustar branding (logo + colores reales de Camila)
+2. Camila configura su Instagram handle en Equipo → así aparece el botón Instagram en admin
+3. Camila corrige el precio de "limpieza facial" (actualmente "20000", debería ser "$ 20.000")
+4. Verificar Google Calendar integration (sync-calendar Edge Function) con tokens reales
