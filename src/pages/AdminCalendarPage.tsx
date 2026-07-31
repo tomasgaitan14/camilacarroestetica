@@ -1,34 +1,33 @@
-import { useState } from 'react'
-import { format, startOfWeek, endOfWeek } from 'date-fns'
+import { useState, useEffect } from 'react'
+import { startOfWeek, endOfWeek } from 'date-fns'
 import { useAuthStore } from '@/store/authStore'
 import { useAppointments } from '@/hooks/useAppointments'
 import { DayAgenda } from '@/components/manage/DayAgenda'
 import { BottomNav } from '@/components/shared/BottomNav'
 import { NewAppointmentModal } from '@/components/admin/NewAppointmentModal'
 import { supabase } from '@/lib/supabase'
+import type { StaffProfile } from '@/types'
 
 export default function AdminCalendarPage() {
   const { profile } = useAuthStore()
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [filterProfId, setFilterProfId] = useState<string | undefined>(undefined)
   const [showNewModal, setShowNewModal] = useState(false)
+  const [professionals, setProfessionals] = useState<StaffProfile[]>([])
 
-  const weekStart = format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd'T'00:00:00")
-  const weekEnd = format(endOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-MM-dd'T'23:59:59")
+  useEffect(() => {
+    supabase.from('staff_profiles').select('*').eq('is_active', true).order('name')
+      .then(({ data }) => { if (data) setProfessionals(data as StaffProfile[]) })
+  }, [])
 
-  // Sin filtro de profesional — trae todos
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }).toISOString()
+  const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 }).toISOString()
+
   const { appointments, loading, refresh } = useAppointments({
     professionalId: filterProfId,
     dateFrom: weekStart,
     dateTo: weekEnd,
   })
-
-  // Lista de profesionales únicos del resultado para el filtro
-  const profMap = new Map<string, string>()
-  appointments.forEach(a => {
-    if (a.professional) profMap.set(a.professional.id, a.professional.name)
-  })
-  const professionals = Array.from(profMap.entries()).map(([id, name]) => ({ id, name }))
 
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null)
 
