@@ -42,10 +42,7 @@ export function Step1Service({ onNext }: Step1ServiceProps) {
                 )}
               </div>
               <div className="text-right shrink-0">
-                {service.display_price && (
-                  <p className="font-semibold text-brand-600">{service.display_price}</p>
-                )}
-                <p className="text-xs text-neutral-400 mt-0.5">{service.duration_minutes} min</p>
+                <p className="text-sm font-semibold text-neutral-500">{service.duration_minutes} min</p>
               </div>
             </div>
           </button>

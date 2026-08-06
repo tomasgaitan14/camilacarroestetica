@@ -112,12 +112,6 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
             <span className="text-neutral-500">Duración</span>
             <span className="font-semibold text-neutral-800">{selectedService?.duration_minutes} min</span>
           </div>
-          {selectedService?.display_price && (
-            <div className="flex justify-between">
-              <span className="text-neutral-500">Precio</span>
-              <span className="font-semibold text-brand-600">{selectedService.display_price}</span>
-            </div>
-          )}
           <div className="border-t border-brand-100 mt-1 pt-2">
             <span className="text-neutral-500 block">Fecha y hora</span>
             <span className="font-semibold text-neutral-800">{capitalizeFirst(slotDisplay)}</span>

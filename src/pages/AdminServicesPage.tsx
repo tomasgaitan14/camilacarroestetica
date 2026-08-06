@@ -9,9 +9,9 @@ export default function AdminServicesPage() {
   const { services, loading, refresh } = useServices(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', duration_minutes: 60, display_price: '' })
+  const [form, setForm] = useState({ name: '', description: '', duration_minutes: 60 })
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', description: '', duration_minutes: 60, display_price: '' })
+  const [editForm, setEditForm] = useState({ name: '', description: '', duration_minutes: 60 })
 
   function startEdit(service: Service) {
     setEditingId(service.id)
@@ -19,7 +19,6 @@ export default function AdminServicesPage() {
       name: service.name,
       description: service.description ?? '',
       duration_minutes: service.duration_minutes,
-      display_price: service.display_price ?? '',
     })
     setShowForm(false)
   }
@@ -35,9 +34,8 @@ export default function AdminServicesPage() {
       name: form.name.trim(),
       description: form.description.trim() || null,
       duration_minutes: form.duration_minutes,
-      display_price: form.display_price.trim() || null,
     })
-    setForm({ name: '', description: '', duration_minutes: 60, display_price: '' })
+    setForm({ name: '', description: '', duration_minutes: 60 })
     setShowForm(false)
     await refresh()
     setSaving(false)
@@ -51,7 +49,6 @@ export default function AdminServicesPage() {
       name: editForm.name.trim(),
       description: editForm.description.trim() || null,
       duration_minutes: editForm.duration_minutes,
-      display_price: editForm.display_price.trim() || null,
     }).eq('id', editingId)
     setEditingId(null)
     await refresh()
@@ -104,29 +101,17 @@ export default function AdminServicesPage() {
               placeholder="Descripción (opcional)"
               className="input"
             />
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="text-xs text-neutral-500 mb-1 block">Duración (min)</label>
-                <input
-                  type="number"
-                  value={form.duration_minutes}
-                  onChange={e => setForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
-                  required
-                  min={15}
-                  max={480}
-                  className="input"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="text-xs text-neutral-500 mb-1 block">Precio (display)</label>
-                <input
-                  type="text"
-                  value={form.display_price}
-                  onChange={e => setForm(f => ({ ...f, display_price: e.target.value }))}
-                  placeholder="Ej: $ 5.000"
-                  className="input"
-                />
-              </div>
+            <div>
+              <label className="text-xs text-neutral-500 mb-1 block">Duración (min)</label>
+              <input
+                type="number"
+                value={form.duration_minutes}
+                onChange={e => setForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
+                required
+                min={15}
+                max={480}
+                className="input"
+              />
             </div>
             <div className="flex gap-2">
               <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2">
@@ -169,29 +154,17 @@ export default function AdminServicesPage() {
                       placeholder="Descripción (opcional)"
                       className="input"
                     />
-                    <div className="flex gap-3">
-                      <div className="flex-1">
-                        <label className="text-xs text-neutral-500 mb-1 block">Duración (min)</label>
-                        <input
-                          type="number"
-                          value={editForm.duration_minutes}
-                          onChange={e => setEditForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
-                          required
-                          min={15}
-                          max={480}
-                          className="input"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-xs text-neutral-500 mb-1 block">Precio (display)</label>
-                        <input
-                          type="text"
-                          value={editForm.display_price}
-                          onChange={e => setEditForm(f => ({ ...f, display_price: e.target.value }))}
-                          placeholder="Ej: $ 5.000"
-                          className="input"
-                        />
-                      </div>
+                    <div>
+                      <label className="text-xs text-neutral-500 mb-1 block">Duración (min)</label>
+                      <input
+                        type="number"
+                        value={editForm.duration_minutes}
+                        onChange={e => setEditForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}
+                        required
+                        min={15}
+                        max={480}
+                        className="input"
+                      />
                     </div>
                     <div className="flex gap-2">
                       <button type="submit" disabled={saving} className="btn-primary flex items-center justify-center gap-2">
@@ -212,9 +185,6 @@ export default function AdminServicesPage() {
                       )}
                       <div className="flex items-center gap-3 mt-1.5">
                         <span className="text-xs text-neutral-400">{service.duration_minutes} min</span>
-                        {service.display_price && (
-                          <span className="text-xs font-semibold text-brand-600">{service.display_price}</span>
-                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
