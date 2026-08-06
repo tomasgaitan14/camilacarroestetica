@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DayPicker } from 'react-day-picker'
-import { format, isBefore, startOfDay } from 'date-fns'
+import { format, isBefore, startOfDay, endOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useBookingStore } from '@/store/bookingStore'
 import { useAvailability, useAppointments } from '@/hooks/useAppointments'
@@ -25,8 +25,8 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
   const { services } = useServices()
   const selectedService = services.find(s => s.id === selectedServiceId)
 
-  const dateFrom = localDate ? format(localDate, 'yyyy-MM-dd') + 'T00:00:00' : undefined
-  const dateTo = localDate ? format(localDate, 'yyyy-MM-dd') + 'T23:59:59' : undefined
+  const dateFrom = localDate ? startOfDay(localDate).toISOString() : undefined
+  const dateTo = localDate ? endOfDay(localDate).toISOString() : undefined
 
   // Carga todos los turnos del día sin filtrar por profesional
   const { appointments, loading: apptLoading } = useAppointments({
