@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DayPicker } from 'react-day-picker'
-import { format, isBefore, startOfDay, endOfDay } from 'date-fns'
+import { format, isBefore, startOfDay, endOfDay, parse, addMinutes } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useBookingStore } from '@/store/bookingStore'
 import { useAvailability, useAppointments } from '@/hooks/useAppointments'
@@ -8,6 +8,7 @@ import { useProfessionalsForService } from '@/hooks/useServices'
 import { useServices } from '@/hooks/useServices'
 import { generateTimeSlots, formatTime, DAY_LABELS } from '@/lib/utils'
 import { Spinner } from '@/components/shared/Spinner'
+import { supabase } from '@/lib/supabase'
 
 interface Step3DateTimeProps {
   onNext: () => void
@@ -17,6 +18,8 @@ interface Step3DateTimeProps {
 export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
   const { selectedServiceId, selectedDate, selectedSlot, setProfessionalSilent, setDate, setSlot } = useBookingStore()
   const [localDate, setLocalDate] = useState<Date | undefined>(selectedDate ?? undefined)
+  const [slotError, setSlotError] = useState<string | null>(null)
+  const [checkingSlot, setCheckingSlot] = useState(false)
 
   const { professionals, loading: prosLoading } = useProfessionalsForService(selectedServiceId)
   const professionalIds = professionals.map(p => p.id)
@@ -29,7 +32,7 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
   const dateTo = localDate ? endOfDay(localDate).toISOString() : undefined
 
   // Carga todos los turnos del día sin filtrar por profesional
-  const { appointments, loading: apptLoading } = useAppointments({
+  const { appointments, loading: apptLoading, refresh: refreshAppointments } = useAppointments({
     dateFrom,
     dateTo,
     statuses: ['confirmed'],
@@ -55,6 +58,7 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
     setLocalDate(date)
     setDate(date)
     setSlot(null as unknown as string)
+    setSlotError(null)
   }
 
   // Genera slots por profesional y los fusiona: disponible si al menos uno está libre
@@ -87,9 +91,35 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
 
   const availableSlots = mergedSlots.filter(s => s.available)
 
-  function handleSlotSelect(time: string) {
+  async function handleSlotSelect(time: string) {
     const slot = mergedSlots.find(s => s.time === time)
-    if (slot?.professionalId) setProfessionalSilent(slot.professionalId)
+    if (!slot?.professionalId || !localDate || !selectedService) return
+
+    setSlotError(null)
+    setCheckingSlot(true)
+
+    const dateStr = format(localDate, 'yyyy-MM-dd')
+    const startsAt = parse(`${dateStr} ${time}`, 'yyyy-MM-dd HH:mm', new Date())
+    const endsAt = addMinutes(startsAt, selectedService.duration_minutes)
+
+    const { data: conflicts } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('professional_id', slot.professionalId)
+      .eq('status', 'confirmed')
+      .lt('starts_at', endsAt.toISOString())
+      .gt('ends_at', startsAt.toISOString())
+      .limit(1)
+
+    setCheckingSlot(false)
+
+    if (conflicts && conflicts.length > 0) {
+      setSlotError('Ese horario ya fue tomado. Elegí otro.')
+      refreshAppointments()
+      return
+    }
+
+    setProfessionalSilent(slot.professionalId)
     setSlot(time)
     onNext()
   }
@@ -157,7 +187,18 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
                 Horarios para el {format(localDate, "d 'de' MMMM", { locale: es })}
               </p>
 
-              {apptLoading ? (
+              {slotError && (
+                <div className="mb-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600 flex items-center gap-2">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  {slotError}
+                </div>
+              )}
+
+              {apptLoading || checkingSlot ? (
                 <div className="flex justify-center py-4"><Spinner size="sm" /></div>
               ) : availableSlots.length === 0 ? (
                 <div className="text-center py-6 text-neutral-500 text-sm">
