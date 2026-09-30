@@ -28,7 +28,8 @@ Solo app. Sin repos hermanos.
 
 - **GitHub**: `tomasgaitan14` → repo `camilacarroestetica`
 - **Vercel**: `tomasagustingaitan@gmail.com` (slug `tomasgaitans-projects`) → proyecto `camilacarro`
-- **Google Cloud**: pendiente — proyecto con la cuenta de servicio (una para DEV y otra para PROD)
+- **Google Cloud DEV**: usa la cuenta de servicio y los calendarios de prueba del proyecto WBot (`personal/WBot`), con una hoja DEV propia. Los datos están en el `.env` local y no en el repo, porque el repo es público.
+- **Google Cloud PROD**: pendiente. Conviene una cuenta de servicio propia de camila-carro, no la de WBot.
 
 ## Variables de entorno
 
@@ -69,16 +70,18 @@ SESSION_SECRET=               # mínimo 32 caracteres
 
 ## Estado actual
 
-La rama `feat/google-sheets-backend` tiene la versión nueva completa. Está probada sin Google (tests, build y handlers llamados directo) y falta probarla con la hoja y los calendarios reales. Producción (`main`) todavía corre la versión anterior hasta que se haga el corte.
+La rama `feat/google-sheets-backend` tiene la versión nueva completa, probada en DEV el 2026-09-30 con `vercel dev` y Chrome:
+- en `/admin`: login, alta de servicios, equipo y horarios, y el rechazo de un calendario no compartido;
+- en `/booking`: la reserva completa, el bloqueo por eventos cargados a mano (con horario y de todo el día), el 409 cuando el horario ya está tomado y el campo trampa.
+
+Producción (`main`) todavía corre la versión anterior hasta que se haga el corte.
 
 ## Próximos pasos
 
-1. Tom arma Google Cloud en DEV: APIs de Sheets y Calendar, cuenta de servicio con clave, una hoja con las pestañas `services`, `professionals` y `availability` compartida como Editor, y calendarios de prueba compartidos con "Hacer cambios en los eventos".
-2. Probar con `vercel dev` en Chrome.
-3. Preview deploy con variables DEV.
-4. Pasar a producción, con aprobación de Tom: hoja y variables PROD en Vercel, merge a `main`.
-5. Después del corte, limpiar lo que usaba la versión anterior: las variables `VITE_SUPABASE_*` de Vercel, el proyecto `CamilaCarroEstetica` de la org `crmsolutions` (libera un slot) y su fila en `personal/CLAUDE.md`.
-6. Branding (logo y colores de Camila).
+1. Preview deploy con variables DEV.
+2. Pasar a producción, con aprobación de Tom: cuenta de servicio propia, hoja PROD, calendarios reales compartidos, variables PROD en Vercel y merge a `main`.
+3. Después del corte, limpiar lo que usaba la versión anterior: las variables `VITE_SUPABASE_*` de Vercel, el proyecto `CamilaCarroEstetica` de la org `crmsolutions` (libera un slot) y su fila en `personal/CLAUDE.md`.
+4. Branding (logo y colores de Camila).
 
 ## Archivos clave
 
@@ -93,6 +96,10 @@ La rama `feat/google-sheets-backend` tiene la versión nueva completa. Está pro
 - `src/components/booking/` — flujo de reserva
 
 ## Notas / contexto extra
+
+Desarrollo local: `vercel dev` levanta Vite y `/api` juntos y toma el `.env`. La regla de `vercel.json` excluye `/api`, las rutas con punto y las que empiezan con `@`: si no, en dev devuelve `index.html` en lugar de los módulos de Vite.
+
+La hoja se edita solo desde `/admin`. Si se escribe a mano, Google cambia el formato de las horas (`09:00` → `9:00`; la lectura lo tolera) y un ID inválido deja `/booking` caído.
 
 Pestañas de la hoja (la fila 1 son los encabezados, la app los escribe al guardar):
 
