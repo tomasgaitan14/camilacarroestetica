@@ -3,7 +3,7 @@ import type { Availability, Catalog, Professional, Service } from '../shared/typ
 import { canReadCalendar } from './calendar.js'
 import { getConfig } from './config.js'
 import { ValidationError } from './domain/errors.js'
-import { isValidTime } from './domain/time.js'
+import { isValidTime, normalizeTime } from './domain/time.js'
 import { googleFetch } from './google.js'
 
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets'
@@ -141,7 +141,12 @@ function professionalFromRow([id = '', name = '', calendarId = '', serviceIds = 
 }
 
 function availabilityFromRow([professionalId = '', dayOfWeek = '', startTime = '', endTime = '']: Row): Availability {
-  return { professional_id: professionalId, day_of_week: Number(dayOfWeek), start_time: startTime, end_time: endTime }
+  return {
+    professional_id: professionalId,
+    day_of_week: Number(dayOfWeek),
+    start_time: normalizeTime(startTime),
+    end_time: normalizeTime(endTime),
+  }
 }
 
 export async function loadCatalog(): Promise<Catalog> {

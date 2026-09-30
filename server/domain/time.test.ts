@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { toInstant, toLocalDate } from './time.js'
+import { normalizeTime, toInstant, toLocalDate } from './time.js'
 
 describe('toInstant', () => {
   it('reads a date and time as Buenos Aires local time, whatever the server time zone', () => {
     expect(toInstant('2026-10-05', '10:00').toISOString()).toBe('2026-10-05T13:00:00.000Z')
+  })
+})
+
+describe('normalizeTime', () => {
+  it.each([
+    ['9:00', '09:00'],
+    ['09:00:00', '09:00'],
+    ['14:30', '14:30'],
+    ['mediodía', 'mediodía'],
+  ])('turns %s, as Google Sheets returns hand-typed times, into %s', (raw, expected) => {
+    expect(normalizeTime(raw)).toBe(expected)
   })
 })
 

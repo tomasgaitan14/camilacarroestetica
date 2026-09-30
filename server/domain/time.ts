@@ -38,6 +38,14 @@ export function isValidTime(time: string): boolean {
   return TIME_PATTERN.test(time)
 }
 
+// Si alguien escribe la hora a mano, Google Sheets la devuelve como '9:00' o '09:00:00'
+const LOOSE_TIME_PATTERN = /^(\d{1,2}):(\d{2})(?::\d{2})?$/
+
+export function normalizeTime(time: string): string {
+  const match = LOOSE_TIME_PATTERN.exec(time.trim())
+  return match ? `${match[1].padStart(2, '0')}:${match[2]}` : time
+}
+
 // Intervalo de tiempo semiabierto [start, end)
 export interface TimeInterval {
   start: Date
