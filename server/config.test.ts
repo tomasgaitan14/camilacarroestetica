@@ -30,7 +30,7 @@ const OAUTH_CLIENT_FILE = {
 }
 
 const SHEET_ID = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'
-const OAUTH_CLIENT_ID = '000000000000-cliente-falso.apps.googleusercontent.com'
+const ADMIN_PASSWORD = 'turnos-camila-2026'
 const SESSION_SECRET = 'secreto-de-sesion-falso-para-tests-0123456789'
 
 function encodeKey(file: object): string {
@@ -51,8 +51,7 @@ function validEnv(): Env {
   return {
     GOOGLE_SERVICE_ACCOUNT_KEY: encodeKey(SERVICE_ACCOUNT_FILE),
     GOOGLE_SHEET_ID: SHEET_ID,
-    GOOGLE_OAUTH_CLIENT_ID: OAUTH_CLIENT_ID,
-    ADMIN_EMAILS: 'tom@example.com',
+    ADMIN_PASSWORD,
     SESSION_SECRET,
   }
 }
@@ -65,8 +64,7 @@ describe('loadConfig', () => {
         privateKey: SERVICE_ACCOUNT_FILE.private_key,
       },
       sheetId: SHEET_ID,
-      oauthClientId: OAUTH_CLIENT_ID,
-      adminEmails: ['tom@example.com'],
+      adminPassword: ADMIN_PASSWORD,
       sessionSecret: SESSION_SECRET,
     })
   })
@@ -75,12 +73,6 @@ describe('loadConfig', () => {
     const config = loadConfig({ ...validEnv(), GOOGLE_SHEET_ID: `${SHEET_ID}\n` })
 
     expect(config.sheetId).toBe(SHEET_ID)
-  })
-
-  it('reads ADMIN_EMAILS as a comma-separated list, trimmed, lowercased and without empty entries', () => {
-    const config = loadConfig({ ...validEnv(), ADMIN_EMAILS: ' Tom@Example.com, ,camila@example.com ' })
-
-    expect(config.adminEmails).toEqual(['tom@example.com', 'camila@example.com'])
   })
 
   it('names every missing or blank variable in the error', () => {
@@ -113,22 +105,10 @@ describe('loadConfig', () => {
     expect(config.sessionSecret).toBe('a'.repeat(32))
   })
 
-  it('rejects ADMIN_EMAILS when an entry is not an email', () => {
-    const error = configErrorFor({ ...validEnv(), ADMIN_EMAILS: 'tom@example.com, camila' })
+  it('rejects an ADMIN_PASSWORD shorter than 12 characters', () => {
+    const error = configErrorFor({ ...validEnv(), ADMIN_PASSWORD: 'a'.repeat(11) })
 
-    expect(error.variables).toEqual(['ADMIN_EMAILS'])
-  })
-
-  it('rejects ADMIN_EMAILS when it only has separators', () => {
-    const error = configErrorFor({ ...validEnv(), ADMIN_EMAILS: ' , ,' })
-
-    expect(error.variables).toEqual(['ADMIN_EMAILS'])
-  })
-
-  it('rejects a GOOGLE_OAUTH_CLIENT_ID that is not a Google client ID', () => {
-    const error = configErrorFor({ ...validEnv(), GOOGLE_OAUTH_CLIENT_ID: OAUTH_CLIENT_FILE.web.client_secret })
-
-    expect(error.variables).toEqual(['GOOGLE_OAUTH_CLIENT_ID'])
+    expect(error.variables).toEqual(['ADMIN_PASSWORD'])
   })
 
   it('rejects a GOOGLE_SHEET_ID pasted as the full spreadsheet URL', () => {

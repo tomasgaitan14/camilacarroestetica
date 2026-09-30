@@ -7,8 +7,7 @@ export interface ServerConfig {
     privateKey: string
   }
   sheetId: string
-  oauthClientId: string
-  adminEmails: string[]
+  adminPassword: string
   sessionSecret: string
 }
 
@@ -34,8 +33,8 @@ const INVALID_SERVICE_ACCOUNT_KEY = 'tiene que ser el JSON de la clave de la cue
 // Con menos caracteres, la firma de la cookie de sesión se puede adivinar por fuerza bruta
 const SESSION_SECRET_MIN_LENGTH = 32
 
-// Sufijo de los IDs de cliente OAuth de Google (el secreto empieza con GOCSPX- y no lo tiene)
-const OAUTH_CLIENT_ID_SUFFIX = '.apps.googleusercontent.com'
+// /admin se abre con esta contraseña: más corta es fácil de adivinar
+const ADMIN_PASSWORD_MIN_LENGTH = 12
 
 // El ID de una hoja es lo que va entre /d/ y /edit en su URL
 const SHEET_ID_PATTERN = /^[A-Za-z0-9_-]+$/
@@ -70,36 +69,14 @@ const serviceAccountKey = requiredString.transform((encoded, ctx) => {
   return { email: keyFile.data.client_email, privateKey: keyFile.data.private_key }
 })
 
-const emailSchema = z.email()
-
-const adminEmails = requiredString.transform((list, ctx) => {
-  const emails = list
-    .split(',')
-    .map(email => email.trim().toLowerCase())
-    .filter(email => email.length > 0)
-
-  if (emails.length === 0) {
-    ctx.issues.push({ code: 'custom', message: MISSING, input: list })
-    return z.NEVER
-  }
-
-  const invalid = emails.filter(email => !emailSchema.safeParse(email).success)
-  if (invalid.length > 0) {
-    ctx.issues.push({ code: 'custom', message: `emails inválidos: ${invalid.join(', ')}`, input: list })
-    return z.NEVER
-  }
-  return emails
-})
-
 const envSchema = z.object({
   GOOGLE_SERVICE_ACCOUNT_KEY: serviceAccountKey,
   GOOGLE_SHEET_ID: requiredString.regex(SHEET_ID_PATTERN, {
     error: 'tiene que ser solo el ID de la hoja, no la URL completa',
   }),
-  GOOGLE_OAUTH_CLIENT_ID: requiredString.endsWith(OAUTH_CLIENT_ID_SUFFIX, {
-    error: `tiene que ser el ID del cliente OAuth (termina en ${OAUTH_CLIENT_ID_SUFFIX})`,
+  ADMIN_PASSWORD: requiredString.min(ADMIN_PASSWORD_MIN_LENGTH, {
+    error: `tiene que tener al menos ${ADMIN_PASSWORD_MIN_LENGTH} caracteres`,
   }),
-  ADMIN_EMAILS: adminEmails,
   SESSION_SECRET: requiredString.min(SESSION_SECRET_MIN_LENGTH, {
     error: `tiene que tener al menos ${SESSION_SECRET_MIN_LENGTH} caracteres`,
   }),
@@ -121,8 +98,15 @@ export function loadConfig(env: Env): ServerConfig {
   return {
     serviceAccount: vars.GOOGLE_SERVICE_ACCOUNT_KEY,
     sheetId: vars.GOOGLE_SHEET_ID,
-    oauthClientId: vars.GOOGLE_OAUTH_CLIENT_ID,
-    adminEmails: vars.ADMIN_EMAILS,
+    adminPassword: vars.ADMIN_PASSWORD,
     sessionSecret: vars.SESSION_SECRET,
   }
+}
+
+let cachedConfig: ServerConfig | undefined
+
+// Config del proceso, validada una sola vez por instancia de la función
+export function getConfig(): ServerConfig {
+  cachedConfig ??= loadConfig(process.env)
+  return cachedConfig
 }
