@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DayPicker } from 'react-day-picker'
-import { format, isBefore, startOfDay } from 'date-fns'
+import { addDays, format, isBefore, startOfDay } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useBookingStore } from '@/store/bookingStore'
 import { api, errorMessage } from '@/lib/api'
@@ -11,6 +11,16 @@ import type { SlotsResponse } from '@/types'
 interface Step3DateTimeProps {
   onNext: () => void
   onBack: () => void
+}
+
+const DAYS_PER_WEEK = 7
+
+// Primer día desde hoy en que alguien hace el servicio: con horarios semanales, cae dentro de los próximos 7
+function firstBookableDay(weekdays: number[]): Date {
+  const today = startOfDay(new Date())
+  const offset = Array.from({ length: DAYS_PER_WEEK }, (_, day) => day)
+    .find(day => weekdays.includes(addDays(today, day).getDay()))
+  return addDays(today, offset ?? 0)
 }
 
 export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
@@ -72,6 +82,7 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
         <DayPicker
           mode="single"
           selected={selectedDate ?? undefined}
+          defaultMonth={selectedDate ?? firstBookableDay(selectedService.weekdays)}
           onSelect={handleDateSelect}
           locale={es}
           disabled={isDayDisabled}
