@@ -4,11 +4,14 @@ import { Step3DateTime } from '@/components/booking/Step3DateTime'
 import { Step4Confirm } from '@/components/booking/Step4Confirm'
 import { SuccessScreen } from '@/components/booking/SuccessScreen'
 import { StepIndicator } from '@/components/booking/StepIndicator'
+import { useServices } from '@/hooks/useServices'
 import type { BookingConfirmation } from '@/types'
 
 const TOTAL_STEPS = 3
 
 export default function BookingPage() {
+  // Se piden una vez por visita: volver al paso 1 no espera otra lectura de la hoja
+  const { services, loading, error } = useServices()
   const [step, setStep] = useState(1)
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null)
 
@@ -43,7 +46,7 @@ export default function BookingPage() {
           <>
             <StepIndicator current={step} total={TOTAL_STEPS} />
 
-            {step === 1 && <Step1Service onNext={next} />}
+            {step === 1 && <Step1Service services={services} loading={loading} error={error} onNext={next} />}
             {step === 2 && <Step3DateTime onNext={next} onBack={back} />}
             {step === 3 && <Step4Confirm onBack={back} onSuccess={setConfirmation} />}
           </>

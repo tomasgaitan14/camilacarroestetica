@@ -1,14 +1,15 @@
-import { useServices } from '@/hooks/useServices'
 import { useBookingStore } from '@/store/bookingStore'
 import { Spinner } from '@/components/shared/Spinner'
 import type { PublicService } from '@/types'
 
 interface Step1ServiceProps {
+  services: PublicService[]
+  loading: boolean
+  error: string | null
   onNext: () => void
 }
 
-export function Step1Service({ onNext }: Step1ServiceProps) {
-  const { services, loading, error } = useServices()
+export function Step1Service({ services, loading, error, onNext }: Step1ServiceProps) {
   const { selectedService, setService } = useBookingStore()
 
   function handleSelect(service: PublicService) {
