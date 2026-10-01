@@ -47,7 +47,7 @@ export function Step1Service({ services, loading, error, onNext }: Step1ServiceP
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-neutral-900">{service.name}</p>
                 {service.description && (
-                  <p className="text-sm text-neutral-500 mt-0.5 line-clamp-2">{service.description}</p>
+                  <p className="text-sm text-neutral-500 mt-0.5">{service.description}</p>
                 )}
               </div>
               <div className="text-right shrink-0">
