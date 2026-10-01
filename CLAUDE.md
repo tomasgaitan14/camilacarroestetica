@@ -91,7 +91,7 @@ El 2026-10-01 se sumaron, probados igual:
 
 Las credenciales falsas de los tests se reemplazaron en todo el historial de la rama, para que GitHub no bloquee el push.
 
-Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), protegido con Vercel Authentication; incluye `/cancel` pero no las reglas de reserva. Producción (`main`) se deploya sola desde `main` y sigue con la versión anterior hasta el corte.
+Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), protegido con Vercel Authentication; se actualiza con `vercel deploy` desde la rama. Producción se deploya sola desde `main` y sigue con la versión anterior hasta el corte.
 
 ## Próximos pasos (corte a producción, con aprobación de Tom)
 
