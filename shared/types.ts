@@ -56,6 +56,21 @@ export interface BookingConfirmation {
   professional_name: string
 }
 
+// Turno futuro de un cliente, tal como lo ve en /cancel (sin su nombre)
+export interface ClientBooking {
+  ref: string
+  service_id: string | null  // null si el servicio ya no existe en el catálogo
+  service_name: string
+  professional_name: string
+  date: string  // 'yyyy-MM-dd'
+  time: string  // 'HH:mm'
+  can_change: boolean  // falta más de 24 h
+}
+
+export interface ClientBookingsResponse {
+  bookings: ClientBooking[]
+}
+
 export interface SessionResponse {
   authenticated: boolean
 }

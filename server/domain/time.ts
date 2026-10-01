@@ -13,6 +13,11 @@ export function toLocalDate(instant: Date): string {
   return formatInTimeZone(instant, APP_TIME_ZONE, 'yyyy-MM-dd')
 }
 
+// Hora 'HH:mm' que corresponde a un instante en el salón
+export function toLocalTime(instant: Date): string {
+  return formatInTimeZone(instant, APP_TIME_ZONE, 'HH:mm')
+}
+
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 const ISO_DATE_LENGTH = 'yyyy-MM-dd'.length

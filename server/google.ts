@@ -26,7 +26,7 @@ function getAuthClient(): JWT {
 }
 
 interface GoogleRequest {
-  method?: 'GET' | 'POST'
+  method?: 'GET' | 'POST' | 'DELETE'
   body?: unknown
 }
 
@@ -38,5 +38,7 @@ export async function googleFetch<T>(url: string, { method = 'GET', body }: Goog
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!response.ok) throw new GoogleApiError(response.status, await response.text())
-  return await response.json() as T
+  // DELETE responde 204 sin cuerpo
+  const text = await response.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }

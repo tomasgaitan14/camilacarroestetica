@@ -6,6 +6,8 @@ export type {
   Availability,
   BookingConfirmation,
   Catalog,
+  ClientBooking,
+  ClientBookingsResponse,
   Professional,
   PublicService,
   Service,

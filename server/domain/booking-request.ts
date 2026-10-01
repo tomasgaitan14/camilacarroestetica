@@ -27,25 +27,31 @@ const clientName = z.string()
     .max(NAME_MAX_LENGTH, { error: `El nombre puede tener hasta ${NAME_MAX_LENGTH} caracteres` })
     .regex(NAME_PATTERN, { error: 'El nombre solo puede tener letras, espacios, puntos, apóstrofos y guiones' }))
 
+export const clientPhoneSchema = z.string().transform((raw, ctx) => {
+  const phone = normalizePhone(raw)
+  if (phone === null) {
+    ctx.issues.push({ code: 'custom', message: INVALID_PHONE, input: raw })
+    return z.NEVER
+  }
+  return phone
+})
+
+export const dateSchema = z.string().refine(isValidDate, { error: 'Elegí una fecha válida' })
+export const timeSchema = z.string().refine(isValidTime, { error: 'Elegí un horario válido' })
+
 const bookingRequestSchema = z.object({
   service_id: z.uuid({ error: 'Elegí un servicio' }),
-  date: z.string().refine(isValidDate, { error: 'Elegí una fecha válida' }),
-  time: z.string().refine(isValidTime, { error: 'Elegí un horario válido' }),
+  date: dateSchema,
+  time: timeSchema,
   client_name: clientName,
-  client_phone: z.string().transform((raw, ctx) => {
-    const phone = normalizePhone(raw)
-    if (phone === null) {
-      ctx.issues.push({ code: 'custom', message: INVALID_PHONE, input: raw })
-      return z.NEVER
-    }
-    return phone
-  }),
+  client_phone: clientPhoneSchema,
   // Campo trampa: va oculto en el formulario, así que solo un bot lo completa
   website: z.string().max(0, { error: 'No pudimos procesar la reserva' }).optional(),
 })
 
-export function parseBookingRequest(input: unknown, now: Date): BookingRequest {
-  const parsed = bookingRequestSchema.safeParse(input)
+// Valida el cuerpo del pedido y junta un mensaje por campo inválido
+export function parseFields<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
+  const parsed = schema.safeParse(input)
   if (!parsed.success) {
     const fields: Record<string, string> = {}
     for (const issue of parsed.error.issues) {
@@ -55,14 +61,21 @@ export function parseBookingRequest(input: unknown, now: Date): BookingRequest {
     }
     throw new ValidationError(fields)
   }
+  return parsed.data
+}
 
-  const { website: _trap, ...request } = parsed.data
+export function ensureNotPast(date: string, time: string, now: Date): void {
   // Las fechas 'yyyy-MM-dd' se comparan bien como texto
-  if (request.date < toLocalDate(now)) {
+  if (date < toLocalDate(now)) {
     throw new ValidationError({ date: 'Elegí una fecha a partir de hoy' })
   }
-  if (toInstant(request.date, request.time) < now) {
+  if (toInstant(date, time) < now) {
     throw new ValidationError({ time: 'Ese horario ya pasó' })
   }
+}
+
+export function parseBookingRequest(input: unknown, now: Date): BookingRequest {
+  const { website: _trap, ...request } = parseFields(bookingRequestSchema, input)
+  ensureNotPast(request.date, request.time, now)
   return request
 }

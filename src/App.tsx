@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import BookingPage from '@/pages/BookingPage'
+import CancelPage from '@/pages/CancelPage'
 import LoginPage from '@/pages/LoginPage'
 import AdminServicesPage from '@/pages/AdminServicesPage'
 import AdminProfessionalsPage from '@/pages/AdminProfessionalsPage'
@@ -12,6 +13,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/booking" replace />} />
         <Route path="/booking" element={<BookingPage />} />
+        <Route path="/cancel" element={<CancelPage />} />
         <Route path="/login" element={<LoginPage />} />
 
         <Route path="/admin" element={<AdminLayout />}>
