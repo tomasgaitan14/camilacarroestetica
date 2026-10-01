@@ -26,10 +26,10 @@ Solo app. Sin repos hermanos.
 
 ## Cuentas
 
-- **GitHub**: `tomasgaitan14` → repo `camilacarroestetica`
-- **Vercel**: `tomasagustingaitan@gmail.com` (slug `tomasgaitans-projects`) → proyecto `camilacarro`
-- **Google Cloud DEV**: usa la cuenta de servicio y los calendarios de prueba del proyecto WBot (`personal/WBot`), con una hoja DEV propia. Los datos están en el `.env` local y no en el repo, porque el repo es público.
-- **Google Cloud PROD**: pendiente. Conviene una cuenta de servicio propia de camila-carro, no la de WBot.
+- **GitHub**: `tomasgaitan14` → repo `camilacarroestetica` (público). Los commits van firmados con el `noreply` de GitHub, configurado como `user.email` local del repo.
+- **Vercel**: `tomasagustingaitan@gmail.com` (equipo `tomasg-projects`) → proyecto `camilacarro`. Producción se deploya sola desde `main`.
+- **Google Cloud DEV**: usa la cuenta de servicio y los calendarios de prueba del proyecto WBot (`personal/WBot`), con una hoja DEV propia. Los datos están en el `.env` local.
+- **Google Cloud PROD**: cuenta de Google propia del salón, con su proyecto de Google Cloud, la cuenta de servicio `turnos-prod`, la hoja "Camila Carro Turnos" y el calendario "Turnos – Camila". La clave está en `~/.config/camila-carro/` y las variables en Vercel (Production). El email de la cuenta y los IDs no van en el repo, porque es público; están en el `CLAUDE.md` de `personal/`.
 
 ## Variables de entorno
 
@@ -91,22 +91,22 @@ El 2026-10-01 se sumaron, probados igual:
 
 Las credenciales falsas de los tests se reemplazaron en todo el historial de la rama, para que GitHub no bloquee el push.
 
-Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), protegido con Vercel Authentication; se actualiza con `vercel deploy` desde la rama. Producción se deploya sola desde `main` y sigue con la versión anterior hasta el corte.
+Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), protegido con Vercel Authentication; se actualiza con `vercel deploy` desde una rama.
 
-## Próximos pasos (corte a producción, con aprobación de Tom)
+**En producción desde el 2026-10-01** (PR #1). El smoke test pasó: la API arranca con la configuración de producción y la hoja de producción se lee bien, todavía vacía. El paso a paso para replicar la app con otro cliente está en `docs/nuevo-cliente.md`.
 
-1. Tom crea la cuenta de Google del salón.
-2. Con esa cuenta: proyecto de Google Cloud con las APIs de Sheets y Calendar, cuenta de servicio con clave, hoja PROD con las pestañas `services`, `professionals` y `availability`, y calendarios reales compartidos con la cuenta de servicio ("Hacer cambios en los eventos") y con cada profesional.
-3. Cargar las 4 variables en Vercel para **Production**, con contraseña de admin y secreto nuevos. Va antes del merge: sin ellas, producción queda caída.
-4. Push de la rama (cuenta `tomasgaitan14`), PR y merge a `main`, que dispara el deploy de producción.
-5. Cargar los datos reales en `/admin` y probar reservar, reprogramar y cancelar un turno; borrarlo.
-6. Cada profesional agrega su calendario en el celular y activa las notificaciones de eventos nuevos (la app no manda avisos).
-7. Rollback: Instant Rollback de Vercel al deploy anterior, que usa Supabase. Por eso, recién después de 1–2 semanas estable se borran las variables `VITE_SUPABASE_*` de Vercel, el proyecto `CamilaCarroEstetica` de la org `crmsolutions` (libera un slot) y su fila en `personal/CLAUDE.md`.
-8. Branding (logo y colores de Camila).
+## Próximos pasos
+
+1. Tom carga los servicios, a Camila con su calendario y los horarios en el `/admin` de producción.
+2. Probar en producción: reservar, reprogramar y cancelar un turno con un celular propio; después borrarlo.
+3. Camila agrega "Turnos – Camila" en su celular y activa las notificaciones de eventos nuevos (la app no manda avisos).
+4. Rollback: Instant Rollback de Vercel al deploy anterior, que usa Supabase. Por eso, recién **desde el 2026-10-15**, si producción sigue estable, se borran las variables `VITE_SUPABASE_*` de Vercel, el proyecto `CamilaCarroEstetica` de la org `crmsolutions` (libera un lugar) y su mención en `personal/CLAUDE.md`.
+5. Branding (logo y colores de Camila).
 
 ## Archivos clave
 
 - `api/` — endpoints: `services`, `slots`, `bookings`, `my-bookings`, `cancellations`, `reschedules`, `session`, `admin/catalog`
+- `docs/nuevo-cliente.md` — paso a paso para replicar la app con otro cliente
 - `shared/booking-rules.ts` — reglas de reserva: anticipación, días adelante, tope por celular y las 24 h para cambios
 - `server/domain/booking-window.ts` — aplica la ventana de reserva y el tope por celular
 - `server/domain/client-changes.ts` — regla de 24 h y validación de los pedidos de `/cancel`
