@@ -124,14 +124,14 @@ function DayRow({ dayLabel, blocks, saving, onAdd, onDelete }: DayRowProps) {
               type="time"
               value={startTime}
               onChange={e => setStartTime(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg border border-neutral-200 text-sm"
+              className="flex-1 px-3 py-2 rounded-lg border border-neutral-200 text-base"
             />
             <span className="text-neutral-400 text-sm">a</span>
             <input
               type="time"
               value={endTime}
               onChange={e => setEndTime(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg border border-neutral-200 text-sm"
+              className="flex-1 px-3 py-2 rounded-lg border border-neutral-200 text-base"
             />
             <button
               onClick={() => onAdd(startTime, endTime)}
