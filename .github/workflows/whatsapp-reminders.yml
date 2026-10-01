@@ -25,6 +25,16 @@ jobs:
             echo "Falta el secreto REMINDERS_URL: no hay nada que disparar"
             exit 0
           fi
-          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$REMINDERS_URL" \
+          HTTP_OK=200
+          # Si la clave de bypass no sirve, Vercel responde 302 al login y curl no lo toma como error:
+          # por eso se revisa el código de respuesta
+          status=$(curl --silent --show-error --max-time 60 --output response.txt --write-out '%{http_code}' \
+            -X POST "$REMINDERS_URL" \
             -H "Authorization: Bearer $CRON_SECRET" \
-            -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET"
+            -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
+          cat response.txt
+          echo
+          if [ "$status" != "$HTTP_OK" ]; then
+            echo "La app respondió $status en lugar de $HTTP_OK"
+            exit 1
+          fi

@@ -64,6 +64,7 @@ VITE_WHATSAPP_NOTICE=         # "true" muestra el aviso en /booking (no es secre
   - `POST /api/cron/reminders`, con `Authorization: Bearer CRON_SECRET`, manda el de los turnos reservados desde la web que empiezan en menos de 2 h y marca el evento con `reminder_sent_at`.
   - Lo dispara `.github/workflows/whatsapp-reminders.yml` cada 15 minutos. GitHub solo programa los workflows que están en `main`, y los desactiva después de 60 días sin actividad en el repo.
   - Los secretos de GitHub son `REMINDERS_URL` (el preview de la rama `dev`), `CRON_SECRET` y `VERCEL_AUTOMATION_BYPASS_SECRET`, la clave de Vercel que permite pasar la protección de los previews.
+  - La corrida falla si la app no responde 200. Antes quedaba en verde aunque Vercel frenara el pedido: si la clave de bypass no sirve, Vercel responde 302 al login y curl no lo toma como error.
 - **Para producción con Meta:** se reemplaza la pieza de envío en `server/messaging.ts` por la Cloud API de Meta con las plantillas aprobadas. El plan está en la memoria de Claude.
 
 ## Reglas de comportamiento (NO romper)
