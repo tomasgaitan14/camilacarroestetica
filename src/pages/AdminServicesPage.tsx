@@ -14,6 +14,7 @@ export default function AdminServicesPage() {
   const { saving, error, persist } = useCatalogSave()
   const [creating, setCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const activeCount = catalog.services.filter(s => s.active).length
 
@@ -25,6 +26,16 @@ export default function AdminServicesPage() {
   async function handleUpdate(id: string, fields: ServiceFields) {
     const services = catalog.services.map(s => (s.id === id ? { ...s, ...fields } : s))
     if (await persist({ ...catalog, services })) setEditingId(null)
+  }
+
+  // También se saca de las profesionales que lo hacen: el catálogo no acepta servicios que no existen
+  async function handleDelete(id: string) {
+    const deleted = await persist({
+      ...catalog,
+      services: catalog.services.filter(s => s.id !== id),
+      professionals: catalog.professionals.map(p => ({ ...p, service_ids: p.service_ids.filter(serviceId => serviceId !== id) })),
+    })
+    if (deleted) setDeletingId(null)
   }
 
   async function handleToggleActive(service: Service) {
@@ -43,7 +54,7 @@ export default function AdminServicesPage() {
             <p className="text-xs text-neutral-500">{activeCount} activo{activeCount !== 1 ? 's' : ''}</p>
           </div>
           <button
-            onClick={() => { setCreating(c => !c); setEditingId(null) }}
+            onClick={() => { setCreating(c => !c); setEditingId(null); setDeletingId(null) }}
             className="flex items-center gap-1.5 bg-brand-500 text-white px-4 py-2 rounded-xl text-sm font-semibold active:bg-brand-600"
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -94,13 +105,25 @@ export default function AdminServicesPage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={() => { setEditingId(service.id); setCreating(false) }}
+                    onClick={() => { setEditingId(service.id); setCreating(false); setDeletingId(null) }}
                     className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
                     title="Editar"
                   >
                     <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => { setDeletingId(service.id); setEditingId(null); setCreating(false) }}
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    title="Eliminar"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                      <path d="M10 11v6M14 11v6"/>
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                     </svg>
                   </button>
                   <button
@@ -113,6 +136,31 @@ export default function AdminServicesPage() {
                   </button>
                 </div>
               </div>
+
+              {deletingId === service.id && (
+                <div className="mt-3 pt-3 border-t border-neutral-100">
+                  <p className="text-sm text-neutral-700 font-medium">¿Eliminar este servicio?</p>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    No se puede deshacer. Se saca de las profesionales que lo hacen; los turnos ya reservados siguen en el calendario.
+                  </p>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => handleDelete(service.id)}
+                      disabled={saving}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-semibold active:bg-red-600 disabled:opacity-50"
+                    >
+                      {saving && <Spinner size="sm" className="border-white/40 border-t-white" />}
+                      Eliminar
+                    </button>
+                    <button
+                      onClick={() => setDeletingId(null)}
+                      className="px-4 py-2 rounded-xl border border-neutral-200 text-sm font-semibold text-neutral-600"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         ))}
