@@ -126,6 +126,12 @@ Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), prote
 
 Desarrollo local: `vercel dev` levanta Vite y `/api` juntos y toma el `.env`. La regla de `vercel.json` excluye `/api`, las rutas con punto y las que empiezan con `@`: si no, en dev devuelve `index.html` en lugar de los módulos de Vite.
 
+App en el iPhone: desde Safari, Compartir → Agregar a inicio, abre como app, sin las barras del navegador (`public/manifest.webmanifest`).
+- El manifiesto no tiene `start_url` a propósito: el ícono abre la página desde la que se agregó, `/admin` para el salón y `/booking` para clientes.
+- La app guarda su propia sesión, separada de Safari: la primera vez pide la contraseña de `/admin`.
+- Los íconos (`apple-touch-icon.png`, `icon-192.png` e `icon-512.png`) son la C del favicon, provisorios hasta el branding.
+- Los campos de formulario van con letra de 16 px o más: con menos, iOS hace zoom al tocarlos.
+
 La hoja se edita solo desde `/admin`. Si se escribe a mano, Google cambia el formato de las horas (`09:00` → `9:00`; la lectura lo tolera) y un ID inválido deja `/booking` caído.
 
 Pestañas de la hoja (la fila 1 son los encabezados, la app los escribe al guardar):
