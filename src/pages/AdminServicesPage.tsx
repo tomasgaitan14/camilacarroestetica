@@ -2,10 +2,17 @@ import { useState } from 'react'
 import { useCatalog, useCatalogSave } from '@/hooks/useCatalog'
 import { Spinner } from '@/components/shared/Spinner'
 import type { Service } from '@/types'
+import { serviceVisibility, type ServiceVisibility } from '../../shared/catalog-visibility'
 
 type ServiceFields = Pick<Service, 'name' | 'description' | 'duration_minutes'>
 
 const EMPTY_SERVICE: ServiceFields = { name: '', description: '', duration_minutes: 60 }
+
+// Los inactivos ya se ven atenuados con "Inactivo"; acá solo los activos que igual no aparecen
+const HIDDEN_REASON: Partial<Record<ServiceVisibility, string>> = {
+  unassigned: 'No aparece en /booking: ninguna profesional activa lo hace. Asignalo en Equipo.',
+  'no-schedule': 'No aparece en /booking: las profesionales que lo hacen no tienen horarios. Cargalos en Horarios.',
+}
 const DURATION_MIN_MINUTES = 5
 const DURATION_MAX_MINUTES = 480
 
@@ -136,6 +143,12 @@ export default function AdminServicesPage() {
                   </button>
                 </div>
               </div>
+
+              {HIDDEN_REASON[serviceVisibility(catalog, service)] && (
+                <p className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+                  {HIDDEN_REASON[serviceVisibility(catalog, service)]}
+                </p>
+              )}
 
               {deletingId === service.id && (
                 <div className="mt-3 pt-3 border-t border-neutral-100">

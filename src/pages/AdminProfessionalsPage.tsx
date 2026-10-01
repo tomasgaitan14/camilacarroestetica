@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useCatalog, useCatalogSave } from '@/hooks/useCatalog'
 import { Spinner } from '@/components/shared/Spinner'
 import type { Professional, Service } from '@/types'
@@ -71,6 +72,7 @@ export default function AdminProfessionalsPage() {
             key={professional.id}
             professional={professional}
             services={catalog.services}
+            hasSchedule={catalog.availability.some(block => block.professional_id === professional.id)}
             saving={saving}
             onChange={replace}
           />
@@ -131,11 +133,12 @@ function ProfessionalForm({ title, initial, saving, onSubmit, onCancel }: Profes
 interface ProfessionalCardProps {
   professional: Professional
   services: Service[]
+  hasSchedule: boolean
   saving: boolean
   onChange: (updated: Professional) => Promise<boolean>
 }
 
-function ProfessionalCard({ professional, services, saving, onChange }: ProfessionalCardProps) {
+function ProfessionalCard({ professional, services, hasSchedule, saving, onChange }: ProfessionalCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
 
@@ -186,6 +189,13 @@ function ProfessionalCard({ professional, services, saving, onChange }: Professi
           <polyline points="6 9 12 15 18 9"/>
         </svg>
       </button>
+
+      {professional.active && !hasSchedule && (
+        <p className="mt-3 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+          Sin horarios: sus servicios no aparecen en /booking.{' '}
+          <Link to="/admin/availability" className="font-semibold underline">Cargar horarios</Link>
+        </p>
+      )}
 
       {expanded && (
         <div className="mt-3 pt-3 border-t border-neutral-100 flex flex-col gap-4">

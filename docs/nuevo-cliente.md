@@ -123,3 +123,4 @@ Para Preview, el comando es el mismo con `preview ""`. La rama vacía significa 
 | Commits firmados con el email del trabajo | `git config user.email` con el `noreply`, en cada repo |
 | Clave JSON dentro de un repo | Moverla a `~/.config/<cliente>/` con `chmod 600` |
 | Sheets limita a 60 lecturas por minuto por cuenta | El catálogo se guarda un minuto en memoria (ya implementado) |
+| Un servicio asignado no aparece en `/booking` | La profesional que lo hace no tiene horarios o está inactiva, o el servicio está inactivo. `/admin` lo avisa en Servicios y en Equipo |

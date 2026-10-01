@@ -6,6 +6,7 @@ import { createEvent, deleteEvent, findEventsByProperty, listBusy, type StoredEv
 import { loadCatalog } from './catalog.js'
 import { dateSchema, parseFields, type BookingRequest } from './domain/booking-request.js'
 import { CLIENT_CHANGE_MIN_HOURS, MAX_FUTURE_BOOKINGS_PER_PHONE } from '../shared/booking-rules.js'
+import { workingProfessionals } from '../shared/catalog-visibility.js'
 import { canBookAnother, earliestBookableStart, lastBookableDate } from './domain/booking-window.js'
 import {
   canClientChange,
@@ -41,8 +42,7 @@ function professionalsFor(catalog: Catalog, serviceId: string): Professional[] {
 // Servicios que se pueden reservar: activos y con alguna profesional que tenga horarios.
 // Cada uno va en el grupo de la primera profesional (orden de Equipo) que lo hace, sin exponer quién es.
 export function publicServices(catalog: Catalog): PublicService[] {
-  const working = catalog.professionals.filter(professional =>
-    professional.active && catalog.availability.some(block => block.professional_id === professional.id))
+  const working = workingProfessionals(catalog)
 
   return catalog.services
     .filter(service => service.active)
