@@ -1,0 +1,6 @@
+# La CLI de Vercel no lee .gitignore: sin esto, `vercel deploy` sube el .env con la clave de la cuenta de servicio
+.env
+.env.*
+!.env.example
+.claude
+dist
