@@ -43,6 +43,8 @@ export interface PublicService {
   description: string
   duration_minutes: number
   weekdays: number[]  // días en que al menos una profesional lo hace
+  // Los servicios de una misma profesional comparten grupo y /booking separa los grupos con una línea
+  group: number
 }
 
 export interface SlotsResponse {

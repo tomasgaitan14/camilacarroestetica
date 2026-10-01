@@ -38,14 +38,19 @@ function professionalsFor(catalog: Catalog, serviceId: string): Professional[] {
   return catalog.professionals.filter(professional => professional.active && professional.service_ids.includes(serviceId))
 }
 
-// Servicios que se pueden reservar: activos y con alguna profesional que tenga horarios
+// Servicios que se pueden reservar: activos y con alguna profesional que tenga horarios.
+// Cada uno va en el grupo de la primera profesional (orden de Equipo) que lo hace, sin exponer quién es.
 export function publicServices(catalog: Catalog): PublicService[] {
+  const working = catalog.professionals.filter(professional =>
+    professional.active && catalog.availability.some(block => block.professional_id === professional.id))
+
   return catalog.services
     .filter(service => service.active)
     .map(service => {
-      const professionalIds = new Set(professionalsFor(catalog, service.id).map(professional => professional.id))
+      const offering = working.filter(professional => professional.service_ids.includes(service.id))
+      const offeringIds = new Set(offering.map(professional => professional.id))
       const weekdays = [...new Set(catalog.availability
-        .filter(block => professionalIds.has(block.professional_id))
+        .filter(block => offeringIds.has(block.professional_id))
         .map(block => block.day_of_week))]
         .sort((a, b) => a - b)
       return {
@@ -54,9 +59,12 @@ export function publicServices(catalog: Catalog): PublicService[] {
         description: service.description,
         duration_minutes: service.duration_minutes,
         weekdays,
+        group: offering.length > 0 ? working.indexOf(offering[0]) : -1,
       }
     })
     .filter(service => service.weekdays.length > 0)
+    // sort es estable: dentro de cada grupo se mantiene el orden de Servicios
+    .sort((a, b) => a.group - b.group)
 }
 
 function activeService(catalog: Catalog, serviceId: string | null): Service {

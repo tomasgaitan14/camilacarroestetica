@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useBookingStore } from '@/store/bookingStore'
 import { Spinner } from '@/components/shared/Spinner'
 import type { PublicService } from '@/types'
@@ -36,25 +37,29 @@ export function Step1Service({ services, loading, error, onNext }: Step1ServiceP
       )}
 
       <div className="flex flex-col gap-3">
-        {services.map((service) => (
-          <button
-            key={service.id}
-            onClick={() => handleSelect(service)}
-            className={`w-full text-left card p-4 active:bg-brand-50 transition-colors
-              ${selectedService?.id === service.id ? 'border-brand-400 bg-brand-50' : 'hover:border-neutral-300'}`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-neutral-900">{service.name}</p>
-                {service.description && (
-                  <p className="text-sm text-neutral-500 mt-0.5">{service.description}</p>
-                )}
+        {services.map((service, index) => (
+          <Fragment key={service.id}>
+            {index > 0 && service.group !== services[index - 1].group && (
+              <hr className="border-t border-dashed border-neutral-300" />
+            )}
+            <button
+              onClick={() => handleSelect(service)}
+              className={`w-full text-left card p-4 active:bg-brand-50 transition-colors
+                ${selectedService?.id === service.id ? 'border-brand-400 bg-brand-50' : 'hover:border-neutral-300'}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-neutral-900">{service.name}</p>
+                  {service.description && (
+                    <p className="text-sm text-neutral-500 mt-0.5">{service.description}</p>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-neutral-500">{service.duration_minutes} min</p>
+                </div>
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-semibold text-neutral-500">{service.duration_minutes} min</p>
-              </div>
-            </div>
-          </button>
+            </button>
+          </Fragment>
         ))}
       </div>
     </div>

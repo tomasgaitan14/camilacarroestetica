@@ -58,6 +58,7 @@ SESSION_SECRET=               # mínimo 32 caracteres
 - El teléfono se guarda normalizado (`549XXXXXXXXXX`) y el evento lleva el link de WhatsApp.
 - El formulario tiene un campo trampa oculto (`website`) contra bots.
 - `/api/services` no expone profesionales ni IDs de calendario.
+- En `/booking`, los servicios se agrupan por la primera profesional, en el orden de Equipo, que los hace y tiene horarios. Entre grupos va una línea punteada, sin nombres. Un servicio compartido aparece una sola vez, en el grupo de la primera. La API solo manda el número de grupo (`group`).
 - Guardar en `/admin` reescribe las tres pestañas en un solo pedido (`valueInputOption: RAW`) y antes verifica que la cuenta de servicio pueda ver el calendario de cada profesional activa.
 - Riesgo aceptado: dos reservas del mismo horario en el mismo segundo pueden duplicarse.
 - Cada reserva guarda en propiedades privadas del evento `client_phone`, `client_name` y `service_id`: así `/cancel` encuentra los turnos de un celular. Solo aparecen los turnos creados desde 2026-10-01 y los de profesionales activas.
