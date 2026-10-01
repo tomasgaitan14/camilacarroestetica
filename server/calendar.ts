@@ -55,8 +55,9 @@ export interface NewEvent {
   privateProperties: Record<string, string>
 }
 
-export async function createEvent(calendarId: string, event: NewEvent): Promise<void> {
-  await googleFetch(eventsUrl(calendarId), {
+// Devuelve el id del evento creado
+export async function createEvent(calendarId: string, event: NewEvent): Promise<string> {
+  const created = await googleFetch<{ id: string }>(eventsUrl(calendarId), {
     method: 'POST',
     body: {
       summary: event.summary,
@@ -66,6 +67,7 @@ export async function createEvent(calendarId: string, event: NewEvent): Promise<
       extendedProperties: { private: event.privateProperties },
     },
   })
+  return created.id
 }
 
 export interface StoredEvent {
@@ -75,15 +77,9 @@ export interface StoredEvent {
   privateProperties: Record<string, string>
 }
 
-// Eventos que terminan después de `from` y tienen esa propiedad privada, ordenados por inicio
-export async function findEventsByProperty(calendarId: string, name: string, value: string, from: Date): Promise<StoredEvent[]> {
-  const params = new URLSearchParams({
-    privateExtendedProperty: `${name}=${value}`,
-    timeMin: from.toISOString(),
-    singleEvents: 'true',
-    orderBy: 'startTime',
-    maxResults: String(MAX_EVENTS_PER_CLIENT),
-  })
+async function listStoredEvents(calendarId: string, params: URLSearchParams): Promise<StoredEvent[]> {
+  params.set('singleEvents', 'true')
+  params.set('orderBy', 'startTime')
   const { items = [] } = await googleFetch<{ items?: CalendarEvent[] }>(eventsUrl(calendarId, params))
   return items.map(event => ({
     id: event.id,
@@ -91,6 +87,32 @@ export async function findEventsByProperty(calendarId: string, name: string, val
     end: instantOf(event.end),
     privateProperties: event.extendedProperties?.private ?? {},
   }))
+}
+
+// Eventos que terminan después de `from` y tienen esa propiedad privada, ordenados por inicio
+export async function findEventsByProperty(calendarId: string, name: string, value: string, from: Date): Promise<StoredEvent[]> {
+  return listStoredEvents(calendarId, new URLSearchParams({
+    privateExtendedProperty: `${name}=${value}`,
+    timeMin: from.toISOString(),
+    maxResults: String(MAX_EVENTS_PER_CLIENT),
+  }))
+}
+
+// Eventos que se superponen con [from, to), ordenados por inicio
+export async function listEventsBetween(calendarId: string, from: Date, to: Date): Promise<StoredEvent[]> {
+  return listStoredEvents(calendarId, new URLSearchParams({
+    timeMin: from.toISOString(),
+    timeMax: to.toISOString(),
+    maxResults: String(MAX_EVENTS_PER_DAY),
+  }))
+}
+
+// Recibe todas las propiedades privadas (las que ya tenía y las nuevas): así da igual si Google combina o reemplaza el mapa
+export async function setPrivateProperties(calendarId: string, eventId: string, properties: Record<string, string>): Promise<void> {
+  await googleFetch(`${eventsUrl(calendarId)}/${encodeURIComponent(eventId)}`, {
+    method: 'PATCH',
+    body: { extendedProperties: { private: properties } },
+  })
 }
 
 export async function deleteEvent(calendarId: string, eventId: string): Promise<void> {

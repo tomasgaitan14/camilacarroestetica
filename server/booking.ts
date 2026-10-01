@@ -15,17 +15,12 @@ import {
   type RescheduleRequest,
 } from './domain/client-changes.js'
 import { ValidationError } from './domain/errors.js'
+import { EVENT_PROPERTY } from './domain/event-properties.js'
+import { notifyConfirmation } from './notifications.js'
 import { computeAvailableSlots, type AvailableSlot } from './domain/slots.js'
 import { toInstant, toLocalDate, toLocalTime, weekdayOf } from './domain/time.js'
 import { GoogleApiError } from './google.js'
 import { HttpError } from './http.js'
-
-// Propiedades privadas del evento: no se ven en el calendario y permiten encontrar los turnos de un cliente
-const EVENT_PROPERTY = {
-  CLIENT_PHONE: 'client_phone',
-  CLIENT_NAME: 'client_name',
-  SERVICE_ID: 'service_id',
-} as const
 
 const UNKNOWN_SERVICE_NAME = 'Turno'
 const UNKNOWN_CLIENT_NAME = 'Cliente'
@@ -117,8 +112,9 @@ async function takeSlot(catalog: Catalog, service: Service, date: string, time: 
   return professional
 }
 
-async function createBookingEvent(professional: Professional, service: Service, client: Client, start: Date): Promise<void> {
-  await createEvent(professional.calendar_id, {
+// Crea el evento del turno y le avisa a la clienta por WhatsApp (si está activado)
+async function createBookingEvent(professional: Professional, service: Service, client: Client, start: Date, appUrl: string): Promise<void> {
+  const eventId = await createEvent(professional.calendar_id, {
     summary: `${service.name} — ${client.name}`,
     description: [
       `Cliente: ${client.name}`,
@@ -134,9 +130,17 @@ async function createBookingEvent(professional: Professional, service: Service, 
       [EVENT_PROPERTY.SERVICE_ID]: service.id,
     },
   })
+  await notifyConfirmation({
+    clientName: client.name,
+    clientPhone: client.phone,
+    serviceName: service.name,
+    professionalName: professional.name,
+    start,
+    eventId,
+  }, appUrl)
 }
 
-export async function book(request: BookingRequest, now: Date): Promise<BookingConfirmation> {
+export async function book(request: BookingRequest, now: Date, appUrl: string): Promise<BookingConfirmation> {
   const catalog = await loadCatalog()
   const service = activeService(catalog, request.service_id)
 
@@ -152,7 +156,7 @@ export async function book(request: BookingRequest, now: Date): Promise<BookingC
   const professional = await takeSlot(catalog, service, request.date, request.time, now)
 
   const client = { name: request.client_name, phone: request.client_phone }
-  await createBookingEvent(professional, service, client, toInstant(request.date, request.time))
+  await createBookingEvent(professional, service, client, toInstant(request.date, request.time), appUrl)
 
   return { date: request.date, time: request.time, service_name: service.name, professional_name: professional.name }
 }
@@ -212,7 +216,7 @@ export async function cancelClientBooking(request: CancellationRequest, now: Dat
 }
 
 // Crea el turno nuevo antes de borrar el viejo: si el horario nuevo ya no está, el cliente conserva el suyo
-export async function rescheduleClientBooking(request: RescheduleRequest, now: Date): Promise<BookingConfirmation> {
+export async function rescheduleClientBooking(request: RescheduleRequest, now: Date, appUrl: string): Promise<BookingConfirmation> {
   const catalog = await loadCatalog()
   const target = changeableEvent(await findClientEvents(catalog, request.client_phone, now), request.ref)
   const service = activeService(catalog, target.booking.service_id)
@@ -222,7 +226,7 @@ export async function rescheduleClientBooking(request: RescheduleRequest, now: D
     name: target.event.privateProperties[EVENT_PROPERTY.CLIENT_NAME] ?? UNKNOWN_CLIENT_NAME,
     phone: request.client_phone,
   }
-  await createBookingEvent(professional, service, client, toInstant(request.date, request.time))
+  await createBookingEvent(professional, service, client, toInstant(request.date, request.time), appUrl)
 
   try {
     await deleteEvent(target.professional.calendar_id, target.event.id)

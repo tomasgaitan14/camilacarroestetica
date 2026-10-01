@@ -7,6 +7,9 @@ import { Spinner } from '@/components/shared/Spinner'
 import { capitalizeFirst } from '@/lib/utils'
 import type { BookingConfirmation } from '@/types'
 
+// Solo donde los avisos por WhatsApp están activos (hoy, la simulación en Preview)
+const WHATSAPP_NOTICE = import.meta.env.VITE_WHATSAPP_NOTICE === 'true'
+
 interface Step4ConfirmProps {
   onBack: () => void
   onSuccess: (confirmation: BookingConfirmation) => void
@@ -108,6 +111,11 @@ export function Step4Confirm({ onBack, onSuccess }: Step4ConfirmProps) {
             className="input"
           />
           <p className="text-xs text-neutral-400 mt-1">Con código de área, sin 0 ni 15</p>
+          {WHATSAPP_NOTICE && (
+            <p className="text-xs text-neutral-500 mt-1">
+              Te vamos a mandar la confirmación y un recordatorio por WhatsApp a este número.
+            </p>
+          )}
         </div>
 
         <div aria-hidden="true" className="absolute -left-[9999px] w-px h-px overflow-hidden">

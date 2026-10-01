@@ -5,5 +5,5 @@ import { json, readJson, withErrors } from '../server/http.js'
 export const POST = withErrors(async request => {
   const now = new Date()
   const reschedule = parseReschedule(await readJson(request), now)
-  return json(await rescheduleClientBooking(reschedule, now))
+  return json(await rescheduleClientBooking(reschedule, now, new URL(request.url).origin))
 })

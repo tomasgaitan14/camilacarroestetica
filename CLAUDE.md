@@ -33,21 +33,38 @@ Solo app. Sin repos hermanos.
 
 ## Variables de entorno
 
-Todas son de backend (nunca con prefijo `VITE_`). Ver `.env.example`.
+Ver `.env.example`. Los secretos son de backend y nunca llevan el prefijo `VITE_`.
 
 ```
 GOOGLE_SERVICE_ACCOUNT_KEY=   # JSON de la clave en base64
 GOOGLE_SHEET_ID=              # solo el ID, no la URL
 ADMIN_PASSWORD=               # mínimo 12 caracteres
 SESSION_SECRET=               # mínimo 32 caracteres
+# Avisos por WhatsApp (sin WHATSAPP_MODE están apagados, como en producción)
+WHATSAPP_MODE=                # zernio-sandbox: simulación
+ZERNIO_API_KEY=
+ZERNIO_TEST_PHONE=            # celular de prueba con sesión en el sandbox
+CRON_SECRET=                  # mínimo 32 caracteres; lo manda GitHub Actions
+VITE_WHATSAPP_NOTICE=         # "true" muestra el aviso en /booking (no es secreto)
 ```
 
 ## Flujos
 
 - **Cliente (anónimo)**: `/booking` → servicio → día y horario → nombre y celular → se crea el evento en el calendario de la profesional asignada.
 - **Admin (solo Tom)**: `/login` con contraseña → `/admin/services`, `/admin/professionals`, `/admin/availability`.
-- **Cliente cancela o reprograma**: `/cancel` → ingresa su celular → ve sus turnos próximos → cancela o reprograma hasta 24 h antes. Con menos de 24 h, un botón de WhatsApp al salón (+54 9 3446 61-7979, `SALON_WHATSAPP` en `src/lib/utils.ts`) con el mensaje ya escrito.
+- **Cliente cancela o reprograma**: `/cancel` → ingresa su celular → ve sus turnos próximos → cancela o reprograma hasta 24 h antes. Con menos de 24 h, un botón de WhatsApp al salón (+54 9 3446 61-7979, `SALON_WHATSAPP` en `shared/salon.ts`) con el mensaje ya escrito.
 - **Admin**: también cancela o mueve turnos directo en Google Calendar; `/booking` se actualiza solo.
+
+## Avisos por WhatsApp (simulación)
+
+- **Dónde está activo:** solo con `WHATSAPP_MODE=zernio-sandbox`, es decir en el `.env` local y en Preview. En producción no hay `WHATSAPP_MODE`, así que no se manda nada.
+- **Simulación:** todos los mensajes van a `ZERNIO_TEST_PHONE` por el sandbox de Zernio, con la línea "Simulación: mensaje para +…". El sandbox solo entrega si ese celular le escribió en las últimas 24 h, y su sesión dura 7 días.
+- **Confirmación:** se manda al reservar y al reprogramar. Si falla WhatsApp, la reserva no se cae: se registra el error y listo.
+- **Recordatorio:**
+  - `POST /api/cron/reminders`, con `Authorization: Bearer CRON_SECRET`, manda el de los turnos reservados desde la web que empiezan en menos de 2 h y marca el evento con `reminder_sent_at`.
+  - Lo dispara `.github/workflows/whatsapp-reminders.yml` cada 15 minutos. GitHub solo programa los workflows que están en `main`, y los desactiva después de 60 días sin actividad en el repo.
+  - Los secretos de GitHub son `REMINDERS_URL` (el preview de la rama `dev`), `CRON_SECRET` y `VERCEL_AUTOMATION_BYPASS_SECRET`, la clave de Vercel que permite pasar la protección de los previews.
+- **Para producción con Meta:** se reemplaza la pieza de envío en `server/messaging.ts` por la Cloud API de Meta con las plantillas aprobadas. El plan está en la memoria de Claude.
 
 ## Reglas de comportamiento (NO romper)
 
@@ -109,6 +126,9 @@ Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), prote
 
 - `api/` — endpoints: `services`, `slots`, `bookings`, `my-bookings`, `cancellations`, `reschedules`, `session`, `admin/catalog`
 - `docs/nuevo-cliente.md` — paso a paso para replicar la app con otro cliente
+- `server/messaging.ts` — envío de WhatsApp intercambiable (hoy el sandbox de Zernio; apagado sin `WHATSAPP_MODE`)
+- `server/notifications.ts` y `server/domain/notifications.ts` — confirmación, recordatorio y textos
+- `api/cron/reminders.ts` y `.github/workflows/whatsapp-reminders.yml` — recordatorios 2 h antes
 - `shared/booking-rules.ts` — reglas de reserva: anticipación, días adelante, tope por celular y las 24 h para cambios
 - `server/domain/booking-window.ts` — aplica la ventana de reserva y el tope por celular
 - `server/domain/client-changes.ts` — regla de 24 h y validación de los pedidos de `/cancel`

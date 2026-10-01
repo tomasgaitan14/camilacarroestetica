@@ -12,13 +12,13 @@ function sign(payload: string, secret: string): string {
 }
 
 // Tiempo constante; los hashes igualan el largo, que timingSafeEqual exige
-function safeEqual(a: string, b: string): boolean {
+export function constantTimeEqual(a: string, b: string): boolean {
   const digest = (value: string) => createHash('sha256').update(value).digest()
   return timingSafeEqual(digest(a), digest(b))
 }
 
 export function passwordMatches(input: string, expected: string): boolean {
-  return safeEqual(input, expected)
+  return constantTimeEqual(input, expected)
 }
 
 // Token '<vencimiento en ms>.<firma>': cambiar SESSION_SECRET cierra todas las sesiones
@@ -30,7 +30,7 @@ export function createSessionToken(secret: string, now: Date): string {
 export function isValidSessionToken(token: string, secret: string, now: Date): boolean {
   const [expiresAt, signature, ...rest] = token.split('.')
   if (!expiresAt || !signature || rest.length > 0) return false
-  if (!safeEqual(signature, sign(expiresAt, secret))) return false
+  if (!constantTimeEqual(signature, sign(expiresAt, secret))) return false
   return Number(expiresAt) > now.getTime()
 }
 

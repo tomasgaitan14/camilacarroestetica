@@ -3,13 +3,6 @@ import { es } from 'date-fns/locale'
 
 export const DAY_LABELS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
-// WhatsApp del salón, para lo que no se puede resolver desde la web
-export const SALON_WHATSAPP = '5493446617979'
-
-export function whatsappLink(phone: string, message: string): string {
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-}
-
 const ISO_DATE = 'yyyy-MM-dd'
 
 export function capitalizeFirst(str: string): string {

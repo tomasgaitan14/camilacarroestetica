@@ -1,4 +1,4 @@
-import { SALON_WHATSAPP, whatsappLink } from '@/lib/utils'
+import { SALON_WHATSAPP, whatsappLink } from '../../../shared/salon'
 
 interface WhatsappButtonProps {
   message: string
