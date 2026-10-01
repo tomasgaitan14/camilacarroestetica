@@ -64,6 +64,9 @@ SESSION_SECRET=               # mínimo 32 caracteres
 - `/api/my-bookings`, `/api/cancellations` y `/api/reschedules` reciben el celular en el cuerpo (POST), nunca en la URL, y antes de tocar un turno vuelven a buscar los de ese celular: la referencia sola no alcanza.
 - Reprogramar crea el turno nuevo antes de borrar el viejo: si el horario ya no está, el cliente conserva el suyo.
 - Riesgo aceptado por Tom: quien sepa el celular de un cliente puede cancelarle el turno. La lista no muestra el nombre del cliente.
+- Ventana de reserva (`shared/booking-rules.ts`): con al menos 2 h de anticipación y hasta 30 días adelante, contados en hora de Argentina. Vale para reservar y para reprogramar; el calendario del front no deja ir más allá.
+- Máximo 3 turnos futuros por celular al reservar; reprogramar no suma.
+- El catálogo (servicios, equipo y horarios) se guarda 1 minuto en memoria, porque Sheets permite 60 lecturas por minuto por cuenta. Los cambios de `/admin` se ven en `/booking` en hasta un minuto; `/admin` siempre lee la hoja. Los calendarios no se cachean.
 
 ## Decisiones tomadas
 
@@ -73,6 +76,7 @@ SESSION_SECRET=               # mínimo 32 caracteres
 - **Cancelación por celular**: se sacó al simplificar y se volvió a sumar el 2026-10-01 a pedido de Tom, aceptando que el celular solo identifica al cliente.
 - **Sin selección de profesional en booking**: se auto-asigna.
 - **Simplicidad ante todo**: tests solo para la lógica de horarios, teléfono, validación, config y sesión. Nada de TDD exhaustivo ni mutation testing (pedido de Tom, 2026-09-30).
+- **Producción con una cuenta de Google del salón** (2026-10-01): la hoja, los calendarios y la cuenta de servicio quedan a nombre de Camila Carro, no de Tom ni de WBot.
 
 ## Estado actual
 
@@ -80,20 +84,31 @@ La rama `feat/google-sheets-backend` tiene la versión nueva completa, probada e
 - en `/admin`: login, alta de servicios, equipo y horarios, y el rechazo de un calendario no compartido;
 - en `/booking`: la reserva completa, el bloqueo por eventos cargados a mano (con horario y de todo el día), el 409 cuando el horario ya está tomado y el campo trampa.
 
-El 2026-10-01 se sumó `/cancel`, probado igual: cancelar, reprogramar, la regla de 24 h, el rechazo de turnos de otro celular y el botón de WhatsApp.
+El 2026-10-01 se sumaron, probados igual:
+- `/cancel`: cancelar, reprogramar, la regla de 24 h, el rechazo de turnos de otro celular y el botón de WhatsApp;
+- las reglas de reserva: 2 h de anticipación, 30 días adelante y 3 turnos por celular;
+- el catálogo en memoria.
 
-Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), protegido con Vercel Authentication; todavía no incluye `/cancel`. Producción (`main`) sigue con la versión anterior hasta que se haga el corte.
+Las credenciales falsas de los tests se reemplazaron en todo el historial de la rama, para que GitHub no bloquee el push.
 
-## Próximos pasos
+Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), protegido con Vercel Authentication; incluye `/cancel` pero no las reglas de reserva. Producción (`main`) se deploya sola desde `main` y sigue con la versión anterior hasta el corte.
 
-1. Actualizar el preview con `/cancel` (`vercel deploy`).
-2. Pasar a producción, con aprobación de Tom: cuenta de servicio propia, hoja PROD, calendarios reales compartidos, variables PROD en Vercel y merge a `main`.
-3. Después del corte, limpiar lo que usaba la versión anterior: las variables `VITE_SUPABASE_*` de Vercel, el proyecto `CamilaCarroEstetica` de la org `crmsolutions` (libera un slot) y su fila en `personal/CLAUDE.md`.
-4. Branding (logo y colores de Camila).
+## Próximos pasos (corte a producción, con aprobación de Tom)
+
+1. Tom crea la cuenta de Google del salón.
+2. Con esa cuenta: proyecto de Google Cloud con las APIs de Sheets y Calendar, cuenta de servicio con clave, hoja PROD con las pestañas `services`, `professionals` y `availability`, y calendarios reales compartidos con la cuenta de servicio ("Hacer cambios en los eventos") y con cada profesional.
+3. Cargar las 4 variables en Vercel para **Production**, con contraseña de admin y secreto nuevos. Va antes del merge: sin ellas, producción queda caída.
+4. Push de la rama (cuenta `tomasgaitan14`), PR y merge a `main`, que dispara el deploy de producción.
+5. Cargar los datos reales en `/admin` y probar reservar, reprogramar y cancelar un turno; borrarlo.
+6. Cada profesional agrega su calendario en el celular y activa las notificaciones de eventos nuevos (la app no manda avisos).
+7. Rollback: Instant Rollback de Vercel al deploy anterior, que usa Supabase. Por eso, recién después de 1–2 semanas estable se borran las variables `VITE_SUPABASE_*` de Vercel, el proyecto `CamilaCarroEstetica` de la org `crmsolutions` (libera un slot) y su fila en `personal/CLAUDE.md`.
+8. Branding (logo y colores de Camila).
 
 ## Archivos clave
 
 - `api/` — endpoints: `services`, `slots`, `bookings`, `my-bookings`, `cancellations`, `reschedules`, `session`, `admin/catalog`
+- `shared/booking-rules.ts` — reglas de reserva: anticipación, días adelante, tope por celular y las 24 h para cambios
+- `server/domain/booking-window.ts` — aplica la ventana de reserva y el tope por celular
 - `server/domain/client-changes.ts` — regla de 24 h y validación de los pedidos de `/cancel`
 - `src/pages/CancelPage.tsx` — cancelar y reprogramar
 - `server/booking.ts` — horarios disponibles con los calendarios y creación del turno
