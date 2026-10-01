@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useBookingStore } from '@/store/bookingStore'
 import { formatDay } from '@/lib/utils'
+import { CLIENT_CHANGE_MIN_HOURS } from '../../../shared/booking-rules'
 import type { BookingConfirmation } from '@/types'
 
 interface SuccessScreenProps {
@@ -29,7 +30,7 @@ export function SuccessScreen({ confirmation, onNewBooking }: SuccessScreenProps
         {confirmation.service_name} con {confirmation.professional_name}, el {formatDay(confirmation.date)} a las {confirmation.time}.
       </p>
       <p className="text-neutral-400 text-sm max-w-xs mb-8">
-        Podés cancelarlo o reprogramarlo con tu celular hasta 24 horas antes.
+        Podés cancelarlo o reprogramarlo con tu celular hasta {CLIENT_CHANGE_MIN_HOURS} horas antes.
       </p>
 
       <div className="w-full flex flex-col gap-3">

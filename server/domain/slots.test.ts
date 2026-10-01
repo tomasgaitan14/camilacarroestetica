@@ -19,7 +19,7 @@ describe('computeAvailableSlots', () => {
     const slots = computeAvailableSlots({
       date: MONDAY_DATE,
       durationMinutes: 60,
-      now: DAYS_BEFORE,
+      earliestStart: DAYS_BEFORE,
       professionals: [schedule('ana', [mondayBlock('09:00', '12:00')])],
     })
 
@@ -34,7 +34,7 @@ describe('computeAvailableSlots', () => {
     const slots = computeAvailableSlots({
       date: MONDAY_DATE,
       durationMinutes: 60,
-      now: DAYS_BEFORE,
+      earliestStart: DAYS_BEFORE,
       professionals: [schedule('ana', [mondayBlock('09:00', '11:30')])],
     })
 
@@ -45,7 +45,7 @@ describe('computeAvailableSlots', () => {
     const slots = computeAvailableSlots({
       date: MONDAY_DATE,
       durationMinutes: 60,
-      now: DAYS_BEFORE,
+      earliestStart: DAYS_BEFORE,
       professionals: [schedule('ana', [
         mondayBlock('09:00', '10:00'),
         { day_of_week: TUESDAY, start_time: '15:00', end_time: '16:00' },
@@ -59,7 +59,7 @@ describe('computeAvailableSlots', () => {
     const slots = computeAvailableSlots({
       date: MONDAY_DATE,
       durationMinutes: 60,
-      now: DAYS_BEFORE,
+      earliestStart: DAYS_BEFORE,
       professionals: [schedule('ana', [mondayBlock('09:00', '12:00')], [
         // 08:00 a 09:00 en Buenos Aires: termina justo cuando empieza el turno de las 09:00
         { start: new Date('2026-10-05T11:00:00Z'), end: new Date('2026-10-05T12:00:00Z') },
@@ -71,11 +71,11 @@ describe('computeAvailableSlots', () => {
     expect(slots.map(slot => slot.time)).toEqual(['09:00', '11:00'])
   })
 
-  it('hides slots that already started', () => {
+  it('hides slots that start before the earliest bookable start', () => {
     const slots = computeAvailableSlots({
       date: MONDAY_DATE,
       durationMinutes: 60,
-      now: new Date('2026-10-05T13:15:00Z'),  // 10:15 en Buenos Aires
+      earliestStart: new Date('2026-10-05T13:15:00Z'),  // 10:15 en Buenos Aires
       professionals: [schedule('ana', [mondayBlock('09:00', '12:00')])],
     })
 
@@ -86,7 +86,7 @@ describe('computeAvailableSlots', () => {
     const slots = computeAvailableSlots({
       date: MONDAY_DATE,
       durationMinutes: 60,
-      now: DAYS_BEFORE,
+      earliestStart: DAYS_BEFORE,
       professionals: [
         schedule('ana', [mondayBlock('09:00', '11:00')], [
           // 09:00 a 10:00 en Buenos Aires
@@ -107,7 +107,7 @@ describe('computeAvailableSlots', () => {
     expect(() => computeAvailableSlots({
       date: MONDAY_DATE,
       durationMinutes,
-      now: DAYS_BEFORE,
+      earliestStart: DAYS_BEFORE,
       professionals: [schedule('ana', [mondayBlock('09:00', '12:00')])],
     })).toThrow(RangeError)
   })

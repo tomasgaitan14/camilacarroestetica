@@ -5,9 +5,10 @@ import type { BookingConfirmation, Catalog, ClientBooking, Professional, PublicS
 import { createEvent, deleteEvent, findEventsByProperty, listBusy, type StoredEvent } from './calendar.js'
 import { loadCatalog } from './catalog.js'
 import { dateSchema, parseFields, type BookingRequest } from './domain/booking-request.js'
+import { CLIENT_CHANGE_MIN_HOURS, MAX_FUTURE_BOOKINGS_PER_PHONE } from '../shared/booking-rules.js'
+import { canBookAnother, earliestBookableStart, lastBookableDate } from './domain/booking-window.js'
 import {
   canClientChange,
-  CLIENT_CHANGE_MIN_HOURS,
   toBookingRef,
   type CancellationRequest,
   type RescheduleRequest,
@@ -66,6 +67,8 @@ function activeService(catalog: Catalog, serviceId: string | null): Service {
 
 // Cruza los horarios configurados con lo que hay cargado hoy en cada calendario
 async function findSlots(catalog: Catalog, service: Service, date: string, now: Date): Promise<AvailableSlot[]> {
+  if (date < toLocalDate(now) || date > lastBookableDate(now)) return []
+
   const weekday = weekdayOf(date)
   const working = professionalsFor(catalog, service.id)
     .filter(professional => catalog.availability.some(block => block.professional_id === professional.id && block.day_of_week === weekday))
@@ -76,7 +79,12 @@ async function findSlots(catalog: Catalog, service: Service, date: string, now: 
     busy: await listBusy(professional.calendar_id, date),
   })))
 
-  return computeAvailableSlots({ date, durationMinutes: service.duration_minutes, professionals: schedules, now })
+  return computeAvailableSlots({
+    date,
+    durationMinutes: service.duration_minutes,
+    professionals: schedules,
+    earliestStart: earliestBookableStart(now),
+  })
 }
 
 const slotQuerySchema = z.object({
@@ -123,6 +131,16 @@ async function createBookingEvent(professional: Professional, service: Service, 
 export async function book(request: BookingRequest, now: Date): Promise<BookingConfirmation> {
   const catalog = await loadCatalog()
   const service = activeService(catalog, request.service_id)
+
+  // Contra reservas falsas en masa: reprogramar no pasa por acá, así que no cuenta
+  const upcoming = await findClientEvents(catalog, request.client_phone, now)
+  if (!canBookAnother(upcoming.length)) {
+    throw new HttpError(
+      HTTP_STATUS.CONFLICT,
+      `Ya tenés ${MAX_FUTURE_BOOKINGS_PER_PHONE} turnos reservados. Para sacar otro, cancelá alguno desde "Cancelar o reprogramar".`,
+    )
+  }
+
   const professional = await takeSlot(catalog, service, request.date, request.time, now)
 
   const client = { name: request.client_name, phone: request.client_phone }

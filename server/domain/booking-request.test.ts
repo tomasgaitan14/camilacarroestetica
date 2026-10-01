@@ -9,9 +9,9 @@ const SERVICE_ID = '3c2b1a0f-9e8d-4c7b-a6f5-4e3d2c1b0a9f'
 
 // Lo que manda el formulario de /booking; website es el campo trampa para bots
 // Devuelve los campos que parseBookingRequest marcó como inválidos
-function invalidFields(input: unknown): string[] {
+function invalidFields(input: unknown, now = NOW): string[] {
   try {
-    parseBookingRequest(input, NOW)
+    parseBookingRequest(input, now)
   } catch (error) {
     if (error instanceof ValidationError) return Object.keys(error.fields)
     throw error
@@ -101,18 +101,26 @@ describe('parseBookingRequest', () => {
     expect(invalidFields({ ...validInput(), date: '2026-10-05', time: '11:00' })).toEqual(['time'])
   })
 
-  it('accepts a later time today', () => {
-    const request = parseBookingRequest({ ...validInput(), date: '2026-10-05', time: '13:00' }, NOW)
+  it('accepts a time today exactly 2 hours from now', () => {
+    const request = parseBookingRequest({ ...validInput(), date: '2026-10-05', time: '14:00' }, NOW)
 
-    expect(request.time).toBe('13:00')
+    expect(request.time).toBe('14:00')
+  })
+
+  it('rejects a time today within the next 2 hours', () => {
+    expect(invalidFields({ ...validInput(), date: '2026-10-05', time: '13:30' })).toEqual(['time'])
   })
 
   it('still takes today as the Buenos Aires date late at night, when UTC is already tomorrow', () => {
     const lateMondayNight = new Date('2026-10-06T02:30:00Z')  // lunes 23:30 en Buenos Aires
 
-    const request = parseBookingRequest({ ...validInput(), date: '2026-10-05', time: '23:45' }, lateMondayNight)
+    // Falla por la anticipación, no por la fecha: el lunes sigue siendo hoy
+    expect(invalidFields({ ...validInput(), date: '2026-10-05', time: '23:45' }, lateMondayNight)).toEqual(['time'])
+  })
 
-    expect(request.date).toBe('2026-10-05')
+  it('accepts dates up to 30 days ahead and rejects the next one', () => {
+    expect(parseBookingRequest({ ...validInput(), date: '2026-11-04' }, NOW).date).toBe('2026-11-04')
+    expect(invalidFields({ ...validInput(), date: '2026-11-05' })).toEqual(['date'])
   })
 
   it("accepts names with accents, ñ, apostrophes and hyphens, like María José O'Neill-Núñez", () => {

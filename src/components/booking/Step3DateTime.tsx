@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DayPicker } from 'react-day-picker'
-import { addDays, format, isBefore, startOfDay } from 'date-fns'
+import { addDays, format, isAfter, isBefore, startOfDay } from 'date-fns'
+import { MAX_DAYS_AHEAD } from '../../../shared/booking-rules'
 import { es } from 'date-fns/locale'
 import { useBookingStore } from '@/store/bookingStore'
 import { api, errorMessage } from '@/lib/api'
@@ -51,8 +52,11 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
 
   if (!selectedService) return null
 
+  const today = startOfDay(new Date())
+  const lastDay = addDays(today, MAX_DAYS_AHEAD)
+
   function isDayDisabled(day: Date): boolean {
-    return isBefore(day, startOfDay(new Date())) || !selectedService?.weekdays.includes(day.getDay())
+    return isBefore(day, today) || isAfter(day, lastDay) || !selectedService?.weekdays.includes(day.getDay())
   }
 
   function handleDateSelect(day: Date | undefined) {
@@ -83,6 +87,7 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
           mode="single"
           selected={selectedDate ?? undefined}
           defaultMonth={selectedDate ?? firstBookableDay(selectedService.weekdays)}
+          toDate={lastDay}
           onSelect={handleDateSelect}
           locale={es}
           disabled={isDayDisabled}

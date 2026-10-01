@@ -9,6 +9,7 @@ import { Step3DateTime } from '@/components/booking/Step3DateTime'
 import { Spinner } from '@/components/shared/Spinner'
 import { WhatsappButton } from '@/components/shared/WhatsappButton'
 import type { BookingConfirmation, ClientBooking, ClientBookingsResponse } from '@/types'
+import { CLIENT_CHANGE_MIN_HOURS } from '../../shared/booking-rules'
 
 type View = 'search' | 'list' | 'confirm-cancel' | 'pick-new-time' | 'confirm-reschedule' | 'done'
 
@@ -148,7 +149,7 @@ export default function CancelPage() {
         {view === 'list' && (
           <div>
             <h2 className="text-xl font-bold text-neutral-900 mb-1">Tus turnos</h2>
-            <p className="text-sm text-neutral-500 mb-5">Podés cancelarlos o reprogramarlos hasta 24 horas antes.</p>
+            <p className="text-sm text-neutral-500 mb-5">Podés cancelarlos o reprogramarlos hasta {CLIENT_CHANGE_MIN_HOURS} horas antes.</p>
 
             {errorBox}
 
@@ -181,7 +182,7 @@ export default function CancelPage() {
                       </div>
                     ) : (
                       <div className="flex items-center justify-between gap-3 bg-neutral-50 rounded-lg px-3 py-2">
-                        <p className="text-xs text-neutral-500">Faltan menos de 24 horas: escribinos para cambiarlo.</p>
+                        <p className="text-xs text-neutral-500">Faltan menos de {CLIENT_CHANGE_MIN_HOURS} horas: escribinos para cambiarlo.</p>
                         <WhatsappButton
                           message={`Hola! Quiero cambiar mi turno de ${booking.service_name} del ${formatDay(booking.date)} a las ${booking.time}.`}
                         />

@@ -57,13 +57,18 @@ export interface TimeInterval {
   end: Date
 }
 
+// Suma días a una fecha 'yyyy-MM-dd' sin pasar por la zona horaria del servidor
+export function addDaysToDate(date: string, days: number): string {
+  const result = toUtcMidnight(date)
+  result.setUTCDate(result.getUTCDate() + days)
+  return result.toISOString().slice(0, ISO_DATE_LENGTH)
+}
+
 // El día completo de una fecha 'yyyy-MM-dd' en el salón, de medianoche a medianoche
 export function dayInterval(date: string): TimeInterval {
-  const nextDay = toUtcMidnight(date)
-  nextDay.setUTCDate(nextDay.getUTCDate() + 1)
   return {
     start: toInstant(date, '00:00'),
-    end: toInstant(nextDay.toISOString().slice(0, ISO_DATE_LENGTH), '00:00'),
+    end: toInstant(addDaysToDate(date, 1), '00:00'),
   }
 }
 

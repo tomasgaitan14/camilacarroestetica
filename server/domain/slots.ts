@@ -26,7 +26,7 @@ export interface SlotQuery {
   date: string  // 'yyyy-MM-dd'
   durationMinutes: number
   professionals: ProfessionalSchedule[]
-  now: Date
+  earliestStart: Date  // no se ofrecen horarios que empiecen antes
 }
 
 const MINUTES_PER_HOUR = 60
@@ -42,7 +42,7 @@ function toTime(totalMinutes: number): string {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
-export function computeAvailableSlots({ date, durationMinutes, professionals, now }: SlotQuery): AvailableSlot[] {
+export function computeAvailableSlots({ date, durationMinutes, professionals, earliestStart }: SlotQuery): AvailableSlot[] {
   // Con 0 o negativa el loop no termina nunca; con decimales las horas quedan rotas
   if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
     throw new RangeError(`La duración del servicio tiene que ser un entero positivo de minutos (llegó ${durationMinutes})`)
@@ -62,7 +62,7 @@ export function computeAvailableSlots({ date, durationMinutes, professionals, no
 
         const slotStart = toInstant(date, time)
         const slot = { start: slotStart, end: addMinutes(slotStart, durationMinutes) }
-        if (slot.start < now) continue
+        if (slot.start < earliestStart) continue
         if (professional.busy.some(busy => intervalsOverlap(slot, busy))) continue
 
         assigned.set(time, professional.professional_id)

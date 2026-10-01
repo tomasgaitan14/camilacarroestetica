@@ -1,9 +1,7 @@
 import { addHours } from 'date-fns'
 import { z } from 'zod'
-import { clientPhoneSchema, dateSchema, ensureNotPast, parseFields, timeSchema } from './booking-request.js'
-
-// Cancelar o reprogramar se puede hasta 24 h antes; después, el cliente tiene que escribir
-export const CLIENT_CHANGE_MIN_HOURS = 24
+import { CLIENT_CHANGE_MIN_HOURS } from '../../shared/booking-rules.js'
+import { clientPhoneSchema, dateSchema, ensureBookable, parseFields, timeSchema } from './booking-request.js'
 
 export function canClientChange(start: Date, now: Date): boolean {
   return start > addHours(now, CLIENT_CHANGE_MIN_HOURS)
@@ -48,6 +46,6 @@ export function parseCancellation(input: unknown): CancellationRequest {
 
 export function parseReschedule(input: unknown, now: Date): RescheduleRequest {
   const request = parseFields(rescheduleSchema, input)
-  ensureNotPast(request.date, request.time, now)
+  ensureBookable(request.date, request.time, now)
   return request
 }

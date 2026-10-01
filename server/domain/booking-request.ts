@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { MAX_DAYS_AHEAD, MIN_NOTICE_HOURS } from '../../shared/booking-rules.js'
+import { earliestBookableStart, lastBookableDate } from './booking-window.js'
 import { ValidationError } from './errors.js'
 import { normalizePhone } from './phone.js'
 import { isValidDate, isValidTime, toInstant, toLocalDate } from './time.js'
@@ -64,18 +66,22 @@ export function parseFields<T extends z.ZodType>(schema: T, input: unknown): z.o
   return parsed.data
 }
 
-export function ensureNotPast(date: string, time: string, now: Date): void {
+// Desde hoy y hasta 30 días, con al menos 2 horas de anticipación
+export function ensureBookable(date: string, time: string, now: Date): void {
   // Las fechas 'yyyy-MM-dd' se comparan bien como texto
   if (date < toLocalDate(now)) {
     throw new ValidationError({ date: 'Elegí una fecha a partir de hoy' })
   }
-  if (toInstant(date, time) < now) {
-    throw new ValidationError({ time: 'Ese horario ya pasó' })
+  if (date > lastBookableDate(now)) {
+    throw new ValidationError({ date: `Se puede reservar hasta ${MAX_DAYS_AHEAD} días adelante` })
+  }
+  if (toInstant(date, time) < earliestBookableStart(now)) {
+    throw new ValidationError({ time: `Reservá con al menos ${MIN_NOTICE_HOURS} horas de anticipación` })
   }
 }
 
 export function parseBookingRequest(input: unknown, now: Date): BookingRequest {
   const { website: _trap, ...request } = parseFields(bookingRequestSchema, input)
-  ensureNotPast(request.date, request.time, now)
+  ensureBookable(request.date, request.time, now)
   return request
 }
