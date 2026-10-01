@@ -1,0 +1,30 @@
+# Dispara los recordatorios de WhatsApp: la app manda los de los turnos que empiezan en menos de 2 h.
+# GitHub solo programa los workflows que están en main, y los desactiva en repos públicos después de
+# 60 días sin actividad (se reactivan en Actions → este workflow → "Enable workflow").
+name: Recordatorios de WhatsApp
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Disparar los recordatorios
+        env:
+          REMINDERS_URL: ${{ secrets.REMINDERS_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          if [ -z "$REMINDERS_URL" ]; then
+            echo "Falta el secreto REMINDERS_URL: no hay nada que disparar"
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --max-time 60 -X POST "$REMINDERS_URL" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            -H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET"
