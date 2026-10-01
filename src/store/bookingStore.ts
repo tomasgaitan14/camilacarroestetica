@@ -1,20 +1,17 @@
 import { create } from 'zustand'
-import type { BookingState } from '@/types'
+import type { BookingState, PublicService } from '@/types'
 
 interface BookingStore extends BookingState {
-  setService: (id: string) => void
-  setProfessional: (id: string) => void
-  setProfessionalSilent: (id: string) => void
+  setService: (service: PublicService) => void
   setDate: (date: Date) => void
-  setSlot: (slot: string) => void
+  setSlot: (slot: string | null) => void
   setClientName: (name: string) => void
   setClientPhone: (phone: string) => void
   reset: () => void
 }
 
 const INITIAL_STATE: BookingState = {
-  selectedServiceId: null,
-  selectedProfessionalId: null,
+  selectedService: null,
   selectedDate: null,
   selectedSlot: null,
   clientName: '',
@@ -23,10 +20,7 @@ const INITIAL_STATE: BookingState = {
 
 export const useBookingStore = create<BookingStore>((set) => ({
   ...INITIAL_STATE,
-  setService: (id) => set({ selectedServiceId: id, selectedProfessionalId: null, selectedDate: null, selectedSlot: null }),
-  setProfessional: (id) => set({ selectedProfessionalId: id, selectedDate: null, selectedSlot: null }),
-  // Auto-asigna sin limpiar fecha/slot (para cuando el profesional se elige al seleccionar el horario)
-  setProfessionalSilent: (id) => set({ selectedProfessionalId: id }),
+  setService: (service) => set({ selectedService: service, selectedDate: null, selectedSlot: null }),
   setDate: (date) => set({ selectedDate: date, selectedSlot: null }),
   setSlot: (slot) => set({ selectedSlot: slot }),
   setClientName: (name) => set({ clientName: name }),

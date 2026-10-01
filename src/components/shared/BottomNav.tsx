@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
-import type { UserRole } from '@/types'
+import { useAuthStore } from '@/store/authStore'
 
 interface NavItem {
   to: string
@@ -9,66 +8,7 @@ interface NavItem {
   icon: React.ReactNode
 }
 
-const PROFESSIONAL_ITEMS: NavItem[] = [
-  {
-    to: '/manage/calendar',
-    label: 'Agenda',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/manage/stats',
-    label: 'Estadísticas',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        <line x1="18" y1="20" x2="18" y2="10"/>
-        <line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/manage/availability',
-    label: 'Horarios',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-      </svg>
-    ),
-  },
-]
-
-const ADMIN_ITEMS: NavItem[] = [
-  {
-    to: '/admin/calendar',
-    label: 'Agenda',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/stats',
-    label: 'Estadísticas',
-    icon: (
-      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        <line x1="18" y1="20" x2="18" y2="10"/>
-        <line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-    ),
-  },
+const ITEMS: NavItem[] = [
   {
     to: '/admin/services',
     label: 'Servicios',
@@ -91,7 +31,7 @@ const ADMIN_ITEMS: NavItem[] = [
     ),
   },
   {
-    to: '/manage/availability',
+    to: '/admin/availability',
     label: 'Horarios',
     icon: (
       <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -102,17 +42,13 @@ const ADMIN_ITEMS: NavItem[] = [
   },
 ]
 
-interface BottomNavProps {
-  role: UserRole
-}
-
-export function BottomNav({ role }: BottomNavProps) {
-  const items = role === 'admin' ? ADMIN_ITEMS : PROFESSIONAL_ITEMS
+export function BottomNav() {
+  const logout = useAuthStore(state => state.logout)
   const navigate = useNavigate()
   const [showConfirm, setShowConfirm] = useState(false)
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
+    await logout()
     navigate('/login')
   }
 
@@ -120,7 +56,7 @@ export function BottomNav({ role }: BottomNavProps) {
     <>
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 flex safe-area-bottom"
            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {items.map((item) => (
+        {ITEMS.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -157,8 +93,7 @@ export function BottomNav({ role }: BottomNavProps) {
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 rounded-full bg-neutral-200 mx-auto mb-5" />
-            <p className="text-base font-bold text-neutral-900 mb-1">¿Cerrar sesión?</p>
-            <p className="text-sm text-neutral-500 mb-5">Tendrás que volver a iniciar sesión con Google para entrar.</p>
+            <p className="text-base font-bold text-neutral-900 mb-5">¿Cerrar sesión?</p>
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleSignOut}

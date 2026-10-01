@@ -5,28 +5,27 @@ import { Step3DateTime } from '@/components/booking/Step3DateTime'
 import { Step4Confirm } from '@/components/booking/Step4Confirm'
 import { SuccessScreen } from '@/components/booking/SuccessScreen'
 import { StepIndicator } from '@/components/booking/StepIndicator'
+import { useServices } from '@/hooks/useServices'
+import type { BookingConfirmation } from '@/types'
 
 const TOTAL_STEPS = 3
 
 export default function BookingPage() {
+  // Se piden una vez por visita: volver al paso 1 no espera otra lectura de la hoja
+  const { services, loading, error } = useServices()
   const [step, setStep] = useState(1)
-  const [confirmedId, setConfirmedId] = useState<string | null>(null)
+  const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null)
 
   const next = () => setStep(s => Math.min(s + 1, TOTAL_STEPS))
   const back = () => setStep(s => Math.max(s - 1, 1))
 
-  function handleSuccess(id: string) {
-    setConfirmedId(id)
-  }
-
   function handleNewBooking() {
-    setConfirmedId(null)
+    setConfirmation(null)
     setStep(1)
   }
 
   return (
     <div className="min-h-screen bg-neutral-50 flex flex-col">
-      {/* Header */}
       <header className="bg-white border-b border-neutral-100 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <img
@@ -34,8 +33,7 @@ export default function BookingPage() {
             alt="Camila Carro"
             className="w-8 h-8 rounded-full object-cover"
             onError={e => {
-              const t = e.currentTarget
-              t.style.display = 'none'
+              e.currentTarget.style.display = 'none'
             }}
           />
           <span className="font-semibold text-neutral-900 text-sm">Camila Carro Estética</span>
@@ -48,17 +46,16 @@ export default function BookingPage() {
         </Link>
       </header>
 
-      {/* Contenido */}
       <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full">
-        {confirmedId ? (
-          <SuccessScreen appointmentId={confirmedId} onNewBooking={handleNewBooking} />
+        {confirmation ? (
+          <SuccessScreen confirmation={confirmation} onNewBooking={handleNewBooking} />
         ) : (
           <>
             <StepIndicator current={step} total={TOTAL_STEPS} />
 
-            {step === 1 && <Step1Service onNext={next} />}
+            {step === 1 && <Step1Service services={services} loading={loading} error={error} onNext={next} />}
             {step === 2 && <Step3DateTime onNext={next} onBack={back} />}
-            {step === 3 && <Step4Confirm onBack={back} onSuccess={handleSuccess} />}
+            {step === 3 && <Step4Confirm onBack={back} onSuccess={setConfirmation} />}
           </>
         )}
       </main>

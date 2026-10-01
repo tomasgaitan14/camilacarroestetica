@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom'
 import { useBookingStore } from '@/store/bookingStore'
+import { formatDay } from '@/lib/utils'
+import { CLIENT_CHANGE_MIN_HOURS } from '../../../shared/booking-rules'
+import type { BookingConfirmation } from '@/types'
 
 interface SuccessScreenProps {
-  appointmentId: string
+  confirmation: BookingConfirmation
   onNewBooking: () => void
 }
 
-export function SuccessScreen({ appointmentId: _appointmentId, onNewBooking }: SuccessScreenProps) {
+export function SuccessScreen({ confirmation, onNewBooking }: SuccessScreenProps) {
   const { reset } = useBookingStore()
 
   function handleNewBooking() {
@@ -23,16 +26,16 @@ export function SuccessScreen({ appointmentId: _appointmentId, onNewBooking }: S
       </div>
 
       <h2 className="text-2xl font-bold text-neutral-900 mb-2">¡Turno confirmado!</h2>
-      <p className="text-neutral-500 text-sm max-w-xs mb-8">
-        Tu turno está reservado. Podés cancelarlo o reprogramarlo hasta 24 horas antes.
+      <p className="text-neutral-600 text-sm max-w-xs mb-2">
+        {confirmation.service_name} con {confirmation.professional_name}, el {formatDay(confirmation.date)} a las {confirmation.time}.
+      </p>
+      <p className="text-neutral-400 text-sm max-w-xs mb-8">
+        Podés cancelarlo o reprogramarlo con tu celular hasta {CLIENT_CHANGE_MIN_HOURS} horas antes.
       </p>
 
       <div className="w-full flex flex-col gap-3">
         <Link to="/cancel" className="btn-secondary flex items-center justify-center gap-2">
-          <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-          </svg>
-          Cancelar o reprogramar turno
+          Cancelar o reprogramar
         </Link>
         <button onClick={handleNewBooking} className="text-sm text-neutral-400 py-2">
           Reservar otro turno

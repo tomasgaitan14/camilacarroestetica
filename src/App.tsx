@@ -1,81 +1,28 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
-import { useAuthStore } from '@/store/authStore'
-import { FullPageSpinner } from '@/components/shared/Spinner'
-import type { UserRole } from '@/types'
-
-// Páginas públicas
 import BookingPage from '@/pages/BookingPage'
 import CancelPage from '@/pages/CancelPage'
 import LoginPage from '@/pages/LoginPage'
-import AuthCallbackPage from '@/pages/AuthCallbackPage'
-
-// Páginas de staff
-import ManageCalendarPage from '@/pages/ManageCalendarPage'
-import ManageAvailabilityPage from '@/pages/ManageAvailabilityPage'
-import AdminCalendarPage from '@/pages/AdminCalendarPage'
 import AdminServicesPage from '@/pages/AdminServicesPage'
 import AdminProfessionalsPage from '@/pages/AdminProfessionalsPage'
-import AdminStatsPage from '@/pages/AdminStatsPage'
-
-interface ProtectedProps {
-  children: React.ReactNode
-  requiredRole?: UserRole
-}
-
-function Protected({ children, requiredRole }: ProtectedProps) {
-  // Lee del store directamente — la inicialización ya la hizo App con useAuth()
-  const { profile, initialized } = useAuthStore()
-
-  if (!initialized) return <FullPageSpinner />
-  if (!profile) return <Navigate to="/login" replace />
-  if (requiredRole && profile.role !== requiredRole) {
-    return <Navigate to={profile.role === 'admin' ? '/admin/calendar' : '/manage/calendar'} replace />
-  }
-
-  return <>{children}</>
-}
+import AdminAvailabilityPage from '@/pages/AdminAvailabilityPage'
+import { AdminLayout } from '@/components/admin/AdminLayout'
 
 export default function App() {
-  // Inicializa la sesión de auth una vez al montar la app
-  useAuth()
-
   return (
     <BrowserRouter>
       <Routes>
-        {/* Públicas */}
         <Route path="/" element={<Navigate to="/booking" replace />} />
         <Route path="/booking" element={<BookingPage />} />
         <Route path="/cancel" element={<CancelPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-        {/* Panel profesional */}
-        <Route path="/manage/calendar" element={
-          <Protected><ManageCalendarPage /></Protected>
-        } />
-        <Route path="/manage/availability" element={
-          <Protected><ManageAvailabilityPage /></Protected>
-        } />
-        <Route path="/manage/stats" element={
-          <Protected><AdminStatsPage /></Protected>
-        } />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/services" replace />} />
+          <Route path="services" element={<AdminServicesPage />} />
+          <Route path="professionals" element={<AdminProfessionalsPage />} />
+          <Route path="availability" element={<AdminAvailabilityPage />} />
+        </Route>
 
-        {/* Panel admin */}
-        <Route path="/admin/calendar" element={
-          <Protected requiredRole="admin"><AdminCalendarPage /></Protected>
-        } />
-        <Route path="/admin/services" element={
-          <Protected requiredRole="admin"><AdminServicesPage /></Protected>
-        } />
-        <Route path="/admin/professionals" element={
-          <Protected requiredRole="admin"><AdminProfessionalsPage /></Protected>
-        } />
-        <Route path="/admin/stats" element={
-          <Protected requiredRole="admin"><AdminStatsPage /></Protected>
-        } />
-
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/booking" replace />} />
       </Routes>
     </BrowserRouter>

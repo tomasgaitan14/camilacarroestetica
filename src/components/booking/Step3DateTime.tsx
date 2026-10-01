@@ -1,130 +1,72 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DayPicker } from 'react-day-picker'
-import { format, isBefore, startOfDay, endOfDay, parse, addMinutes } from 'date-fns'
+import { addDays, format, isAfter, isBefore, startOfDay } from 'date-fns'
+import { MAX_DAYS_AHEAD } from '../../../shared/booking-rules'
 import { es } from 'date-fns/locale'
 import { useBookingStore } from '@/store/bookingStore'
-import { useAvailability, useAppointments } from '@/hooks/useAppointments'
-import { useProfessionalsForService } from '@/hooks/useServices'
-import { useServices } from '@/hooks/useServices'
-import { generateTimeSlots, formatTime, DAY_LABELS } from '@/lib/utils'
+import { api, errorMessage } from '@/lib/api'
+import { DAY_LABELS } from '@/lib/utils'
 import { Spinner } from '@/components/shared/Spinner'
-import { supabase } from '@/lib/supabase'
+import type { SlotsResponse } from '@/types'
 
 interface Step3DateTimeProps {
   onNext: () => void
   onBack: () => void
 }
 
+const DAYS_PER_WEEK = 7
+
+// Primer día desde hoy en que alguien hace el servicio: con horarios semanales, cae dentro de los próximos 7
+function firstBookableDay(weekdays: number[]): Date {
+  const today = startOfDay(new Date())
+  const offset = Array.from({ length: DAYS_PER_WEEK }, (_, day) => day)
+    .find(day => weekdays.includes(addDays(today, day).getDay()))
+  return addDays(today, offset ?? 0)
+}
+
 export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
-  const { selectedServiceId, selectedDate, selectedSlot, setProfessionalSilent, setDate, setSlot } = useBookingStore()
-  const [localDate, setLocalDate] = useState<Date | undefined>(selectedDate ?? undefined)
-  const [slotError, setSlotError] = useState<string | null>(null)
-  const [checkingSlot, setCheckingSlot] = useState(false)
+  const { selectedService, selectedDate, selectedSlot, setDate, setSlot } = useBookingStore()
+  const [slots, setSlots] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const { professionals, loading: prosLoading } = useProfessionalsForService(selectedServiceId)
-  const professionalIds = professionals.map(p => p.id)
+  const date = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null
 
-  const { availability, blockedDates, loading: availLoading } = useAvailability(professionalIds)
-  const { services } = useServices()
-  const selectedService = services.find(s => s.id === selectedServiceId)
+  // Cada vez que se muestra un día se consultan los calendarios, así no aparece lo que se cargó a mano
+  useEffect(() => {
+    if (!selectedService || !date) return
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+    const params = new URLSearchParams({ service_id: selectedService.id, date })
+    api.get<SlotsResponse>(`slots?${params}`)
+      .then(response => { if (!cancelled) setSlots(response.slots) })
+      .catch(err => {
+        if (cancelled) return
+        setSlots([])
+        setError(errorMessage(err))
+      })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [selectedService, date])
 
-  const dateFrom = localDate ? startOfDay(localDate).toISOString() : undefined
-  const dateTo = localDate ? endOfDay(localDate).toISOString() : undefined
+  if (!selectedService) return null
 
-  // Carga todos los turnos del día sin filtrar por profesional
-  const { appointments, loading: apptLoading, refresh: refreshAppointments } = useAppointments({
-    dateFrom,
-    dateTo,
-    statuses: ['confirmed'],
-  })
+  const today = startOfDay(new Date())
+  const lastDay = addDays(today, MAX_DAYS_AHEAD)
 
-  const availableDaysOfWeek = [...new Set(availability.map(a => a.day_of_week))]
-
-  function isDayDisabled(date: Date): boolean {
-    if (isBefore(date, startOfDay(new Date()))) return true
-    const dateStr = format(date, 'yyyy-MM-dd')
-    const dayOfWeek = date.getDay()
-
-    // Al menos un profesional debe tener ese día disponible y no bloqueado
-    return !professionals.some(prof => {
-      const hasAvail = availability.some(a => a.professional_id === prof.id && a.day_of_week === dayOfWeek)
-      if (!hasAvail) return false
-      return !blockedDates.some(b => b.professional_id === prof.id && b.date === dateStr)
-    })
+  function isDayDisabled(day: Date): boolean {
+    return isBefore(day, today) || isAfter(day, lastDay) || !selectedService?.weekdays.includes(day.getDay())
   }
 
-  function handleDateSelect(date: Date | undefined) {
-    if (!date) return
-    setLocalDate(date)
-    setDate(date)
-    setSlot(null as unknown as string)
-    setSlotError(null)
+  function handleDateSelect(day: Date | undefined) {
+    if (day) setDate(day)
   }
 
-  // Genera slots por profesional y los fusiona: disponible si al menos uno está libre
-  const mergedSlots = (() => {
-    if (!localDate || !selectedService || professionals.length === 0) return []
-
-    const slotsPerPro = professionals.map(prof => ({
-      professionalId: prof.id,
-      slots: generateTimeSlots(
-        localDate,
-        availability.filter(a => a.professional_id === prof.id),
-        appointments.filter(a => a.professional_id === prof.id),
-        selectedService.duration_minutes,
-      ),
-    }))
-
-    const allTimes = [...new Set(slotsPerPro.flatMap(p => p.slots.map(s => s.time)))].sort()
-
-    return allTimes.map(time => {
-      let professionalId: string | null = null
-      for (const { professionalId: pId, slots } of slotsPerPro) {
-        if (slots.find(s => s.time === time)?.available) {
-          professionalId = pId
-          break
-        }
-      }
-      return { time, available: professionalId !== null, professionalId }
-    })
-  })()
-
-  const availableSlots = mergedSlots.filter(s => s.available)
-
-  async function handleSlotSelect(time: string) {
-    const slot = mergedSlots.find(s => s.time === time)
-    if (!slot?.professionalId || !localDate || !selectedService) return
-
-    setSlotError(null)
-    setCheckingSlot(true)
-
-    const dateStr = format(localDate, 'yyyy-MM-dd')
-    const startsAt = parse(`${dateStr} ${time}`, 'yyyy-MM-dd HH:mm', new Date())
-    const endsAt = addMinutes(startsAt, selectedService.duration_minutes)
-
-    const { data: conflicts } = await supabase
-      .from('appointments')
-      .select('id')
-      .eq('professional_id', slot.professionalId)
-      .eq('status', 'confirmed')
-      .lt('starts_at', endsAt.toISOString())
-      .gt('ends_at', startsAt.toISOString())
-      .limit(1)
-
-    setCheckingSlot(false)
-
-    if (conflicts && conflicts.length > 0) {
-      setSlotError('Ese horario ya fue tomado. Elegí otro.')
-      refreshAppointments()
-      return
-    }
-
-    setProfessionalSilent(slot.professionalId)
+  function handleSlotSelect(time: string) {
     setSlot(time)
     onNext()
   }
-
-  const isLoading = prosLoading || availLoading
 
   return (
     <div>
@@ -137,93 +79,78 @@ export function Step3DateTime({ onNext, onBack }: Step3DateTimeProps) {
 
       <h2 className="text-xl font-bold text-neutral-900 mb-1">Elegí fecha y horario</h2>
       <p className="text-sm text-neutral-500 mb-4">
-        Días disponibles: {availableDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+        Días disponibles: {selectedService.weekdays.map(day => DAY_LABELS[day]).join(', ')}
       </p>
 
-      {isLoading ? (
-        <div className="flex justify-center py-8"><Spinner /></div>
-      ) : (
-        <>
-          {/* Calendario */}
-          <div className="card mb-4 overflow-hidden !p-0">
-            <DayPicker
-              mode="single"
-              selected={localDate}
-              onSelect={handleDateSelect}
-              locale={es}
-              disabled={isDayDisabled}
-              showOutsideDays
-              classNames={{
-                months: 'w-full',
-                month: 'w-full pb-4',
-                caption: 'flex items-center justify-between px-4 pt-4 pb-1',
-                caption_label: 'text-sm font-bold text-neutral-900 capitalize',
-                nav: 'flex items-center gap-1',
-                nav_button: 'w-8 h-8 flex items-center justify-center rounded-full hover:bg-neutral-100 transition-colors text-neutral-400 hover:text-neutral-600',
-                nav_button_previous: '',
-                nav_button_next: '',
-                table: 'w-full border-collapse',
-                head_row: '',
-                head_cell: 'text-xs font-medium text-neutral-400 text-center py-2 w-[14.28%]',
-                row: '',
-                cell: 'text-center py-0.5 w-[14.28%]',
-                day: [
-                  'w-9 h-9 rounded-full text-sm font-medium mx-auto',
-                  'flex items-center justify-center transition-colors',
-                  'text-neutral-700 hover:bg-brand-50 hover:text-brand-600 cursor-pointer',
-                ].join(' '),
-                day_selected: '!bg-brand-500 !text-white hover:!bg-brand-600 shadow-sm',
-                day_today: '!font-bold ring-1 ring-brand-400 !text-brand-600',
-                day_disabled: '!text-neutral-200 hover:!bg-transparent cursor-default',
-                day_outside: '!text-neutral-300 hover:!bg-transparent cursor-default',
-              }}
-            />
-          </div>
+      <div className="card mb-4 overflow-hidden !p-0">
+        <DayPicker
+          mode="single"
+          selected={selectedDate ?? undefined}
+          defaultMonth={selectedDate ?? firstBookableDay(selectedService.weekdays)}
+          toDate={lastDay}
+          onSelect={handleDateSelect}
+          locale={es}
+          disabled={isDayDisabled}
+          showOutsideDays
+          classNames={{
+            months: 'w-full',
+            month: 'w-full pb-4',
+            caption: 'flex items-center justify-between px-4 pt-4 pb-1',
+            caption_label: 'text-sm font-bold text-neutral-900 capitalize',
+            nav: 'flex items-center gap-1',
+            nav_button: 'w-8 h-8 flex items-center justify-center rounded-full hover:bg-neutral-100 transition-colors text-neutral-400 hover:text-neutral-600',
+            nav_button_previous: '',
+            nav_button_next: '',
+            table: 'w-full border-collapse',
+            head_row: '',
+            head_cell: 'text-xs font-medium text-neutral-400 text-center py-2 w-[14.28%]',
+            row: '',
+            cell: 'text-center py-0.5 w-[14.28%]',
+            day: [
+              'w-9 h-9 rounded-full text-sm font-medium mx-auto',
+              'flex items-center justify-center transition-colors',
+              'text-neutral-700 hover:bg-brand-50 hover:text-brand-600 cursor-pointer',
+            ].join(' '),
+            day_selected: '!bg-brand-500 !text-white hover:!bg-brand-600 shadow-sm',
+            day_today: '!font-bold ring-1 ring-brand-400 !text-brand-600',
+            day_disabled: '!text-neutral-200 hover:!bg-transparent cursor-default',
+            day_outside: '!text-neutral-300 hover:!bg-transparent cursor-default',
+          }}
+        />
+      </div>
 
-          {/* Slots de tiempo */}
-          {localDate && (
-            <div>
-              <p className="text-sm font-semibold text-neutral-700 mb-3">
-                Horarios para el {format(localDate, "d 'de' MMMM", { locale: es })}
-              </p>
+      {selectedDate && (
+        <div>
+          <p className="text-sm font-semibold text-neutral-700 mb-3">
+            Horarios para el {format(selectedDate, "d 'de' MMMM", { locale: es })}
+          </p>
 
-              {slotError && (
-                <div className="mb-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600 flex items-center gap-2">
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                  </svg>
-                  {slotError}
-                </div>
-              )}
-
-              {apptLoading || checkingSlot ? (
-                <div className="flex justify-center py-4"><Spinner size="sm" /></div>
-              ) : availableSlots.length === 0 ? (
-                <div className="text-center py-6 text-neutral-500 text-sm">
-                  No hay horarios disponibles para este día. Probá con otra fecha.
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {availableSlots.map((slot) => (
-                    <button
-                      key={slot.time}
-                      onClick={() => handleSlotSelect(slot.time)}
-                      className={`py-2.5 rounded-xl text-sm font-semibold border transition-colors
-                        ${selectedSlot === slot.time
-                          ? 'bg-brand-500 text-white border-brand-500'
-                          : 'bg-white border-neutral-200 text-neutral-700 active:bg-brand-50'
-                        }`}
-                    >
-                      {formatTime(slot.time)}
-                    </button>
-                  ))}
-                </div>
-              )}
+          {loading ? (
+            <div className="flex justify-center py-4"><Spinner size="sm" /></div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-600">{error}</div>
+          ) : slots.length === 0 ? (
+            <div className="text-center py-6 text-neutral-500 text-sm">
+              No hay horarios disponibles para este día. Probá con otra fecha.
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {slots.map((time) => (
+                <button
+                  key={time}
+                  onClick={() => handleSlotSelect(time)}
+                  className={`py-2.5 rounded-xl text-sm font-semibold border transition-colors
+                    ${selectedSlot === time
+                      ? 'bg-brand-500 text-white border-brand-500'
+                      : 'bg-white border-neutral-200 text-neutral-700 active:bg-brand-50'
+                    }`}
+                >
+                  {time}
+                </button>
+              ))}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   )

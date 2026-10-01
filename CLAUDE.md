@@ -2,7 +2,7 @@
 
 ## Descripción
 
-App web mobile-first de turnos para Camila Carro Estética. Permite a los clientes reservar turnos online y a Camila + su equipo gestionar la agenda desde un panel interno.
+App web mobile-first de turnos para Camila Carro Estética. Los clientes reservan en `/booking` y cancelan o reprograman en `/cancel`; Tom configura servicios, profesionales y horarios en `/admin`. Cada turno queda como evento en el Google Calendar de la profesional.
 
 ## Contexto
 
@@ -10,12 +10,14 @@ Personal — proyecto para cliente Camila Carro.
 
 ## Stack usado en este proyecto
 
-- **Frontend**: Vite + React 18 + TypeScript + Tailwind CSS v3
-- **Routing**: React Router v6
-- **Estado global**: Zustand
-- **Backend**: Supabase (Auth, PostgreSQL, Edge Functions)
-- **Auth**: Google OAuth vía Supabase (con scope de Google Calendar)
-- **Fechas**: date-fns + react-day-picker
+- **Frontend**: Vite + React 18 + TypeScript + Tailwind CSS v3, React Router v6, Zustand
+- **Backend**: funciones de Vercel en `/api` (handlers `Request` → `Response`)
+- **DB**: Google Sheet, accedida con una cuenta de servicio de Google
+- **Turnos**: Google Calendar de cada profesional, con la misma cuenta de servicio
+- **Auth admin**: contraseña (`ADMIN_PASSWORD`) + cookie firmada con HMAC (`SESSION_SECRET`)
+- **Validación**: zod
+- **Fechas**: date-fns + date-fns-tz (hora de Argentina) + react-day-picker
+- **Tests**: Vitest, siempre con `TZ=UTC` (igual que Vercel)
 - **Deploy**: Vercel
 
 ## Proyectos relacionados
@@ -26,90 +28,108 @@ Solo app. Sin repos hermanos.
 
 - **GitHub**: `tomasgaitan14` → repo `camilacarroestetica`
 - **Vercel**: `tomasagustingaitan@gmail.com` (slug `tomasgaitans-projects`) → proyecto `camilacarro`
-- **Supabase**: `crmsolutionsgchu@gmail.com` (org `crmsolutions`) → proyecto `CamilaCarroEstetica` (ID: `zbapybnnzafascbkqmzr`)
+- **Google Cloud DEV**: usa la cuenta de servicio y los calendarios de prueba del proyecto WBot (`personal/WBot`), con una hoja DEV propia. Los datos están en el `.env` local y no en el repo, porque el repo es público.
+- **Google Cloud PROD**: pendiente. Conviene una cuenta de servicio propia de camila-carro, no la de WBot.
 
-## Variables de entorno requeridas
+## Variables de entorno
+
+Todas son de backend (nunca con prefijo `VITE_`). Ver `.env.example`.
 
 ```
-VITE_SUPABASE_URL=https://zbapybnnzafascbkqmzr.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon key del proyecto>
+GOOGLE_SERVICE_ACCOUNT_KEY=   # JSON de la clave en base64
+GOOGLE_SHEET_ID=              # solo el ID, no la URL
+ADMIN_PASSWORD=               # mínimo 12 caracteres
+SESSION_SECRET=               # mínimo 32 caracteres
 ```
 
-En la Edge Function `sync-calendar` (variables en Supabase):
-```
-GOOGLE_CLIENT_ID=<Google OAuth client ID>
-GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
-```
+## Flujos
 
-## Roles y flujos
+- **Cliente (anónimo)**: `/booking` → servicio → día y horario → nombre y celular → se crea el evento en el calendario de la profesional asignada.
+- **Admin (solo Tom)**: `/login` con contraseña → `/admin/services`, `/admin/professionals`, `/admin/availability`.
+- **Cliente cancela o reprograma**: `/cancel` → ingresa su celular → ve sus turnos próximos → cancela o reprograma hasta 24 h antes. Con menos de 24 h, un botón de WhatsApp al salón (+54 9 3446 61-7979, `SALON_WHATSAPP` en `src/lib/utils.ts`) con el mensaje ya escrito.
+- **Admin**: también cancela o mueve turnos directo en Google Calendar; `/booking` se actualiza solo.
 
-- **Cliente (anónimo)**: `/booking` → elige servicio → horario (auto-asigna profesional) → reserva
-- **Cliente cancelación**: `/cancel` → ingresa teléfono → cancela/reprograma (máx 24h antes)
-- **Profesional**: login Google → `/manage/calendar` + `/manage/availability`
-- **Admin (Camila)**: login Google → `/admin/calendar` + `/admin/services` + `/admin/professionals`
+## Reglas de comportamiento (NO romper)
 
-## Integración Google Calendar
-
-Cuando un turno se crea/cancela, se dispara la Edge Function `sync-calendar` que crea/elimina el evento en el Google Calendar personal de la profesional. El refresh token se guarda en la tabla `staff_tokens`. Requiere configurar:
-1. Google Cloud Console: OAuth 2.0 client + Calendar API habilitada
-2. Supabase Auth: proveedor Google con scopes `calendar` y `offline_access`
-3. Edge Function secrets: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-
-## Estado actual
-
-MVP funcional en producción. QA completado (2026-07-31). Todo deployado en Vercel + Supabase.
-
-## QA — lo que funciona y lo que NO romper
-
-### Flujos verificados ✅
-- **Booking público** (3 pasos: Servicio → Horario → Confirmar): auto-asigna profesional disponible al seleccionar el slot. Si el slot se pisó en paralelo, muestra error específico "Ese horario ya fue tomado".
-- **Cancel/reprogramar**: cliente ingresa teléfono → ve sus turnos futuros → puede cancelar (solo si es >24h antes).
-- **Admin calendar**: filtro por profesional, navegación por día, modal "+ Nuevo turno" manual, badge "Realizado" en completados, botón Cancelar.
-- **Servicios**: CRUD inline en `/admin/services`, edita nombre, descripción, duración y precio.
-- **Equipo**: asignación de servicios por profesional, toggle activo/inactivo, campos WhatsApp e Instagram (Instagram solo para rol admin).
-- **Horarios (availability)**: configuración de bloques por día de la semana, visible en `/manage/availability`.
-
-### Reglas de comportamiento críticas (NO romper)
-- El **paso de selección de profesional fue eliminado** del booking. El flujo es 3 pasos: Servicio → Horario → Confirmar. El profesional se auto-asigna al elegir un slot (`setProfessionalSilent`).
-- El **botón "Realizado" fue eliminado** de las cards. Solo queda el badge "Realizado" (read-only) y el botón "Cancelar".
-- El **botón Instagram en admin** está condicionado a que `professional.instagram_handle` no sea null. Camila debe configurarlo en la página Equipo. No es un bug — es configuración de datos.
-- El **botón WhatsApp** usa el teléfono del CLIENTE (no de la profesional) para contactar desde el panel. Siempre debe estar presente en turnos activos.
-- **No deben pisarse turnos**: hay un constraint en la DB (`no_overlapping_confirmed_appointments`) que impide dos turnos `confirmed` del mismo profesional en el mismo horario.
-- El **`authStore` usa `initialized`** (one-way flag) para mostrar el FullPageSpinner. El spinner solo aparece en la carga inicial, no en refreshes de token posteriores.
-- El **`setProfessionalSilent`** en bookingStore existe porque `setProfessional` hace cascade-reset de fecha y slot. Nunca reemplazar el primero por el segundo en el flujo de auto-assign.
-
-### Constraint de DB aplicado
-```sql
-CREATE EXTENSION IF NOT EXISTS btree_gist;
-ALTER TABLE appointments ADD CONSTRAINT no_overlapping_confirmed_appointments
-EXCLUDE USING gist (
-  professional_id WITH =,
-  tstzrange(starts_at, ends_at, '[)') WITH &&
-) WHERE (status = 'confirmed');
-```
-El insert fallará con code `23P01` si hay overlap. Los forms muestran mensaje específico.
+- Los horarios de `/booking` son los bloques de `/admin/availability` menos cualquier evento del calendario de la profesional, incluidos los de todo el día y los marcados como "Disponible".
+- `/api/slots` consulta los calendarios en cada pedido. `/api/bookings` los vuelve a consultar antes de crear el evento y responde 409 si el horario se ocupó.
+- La profesional se asigna sola: la primera libre para ese horario, en el orden de la hoja.
+- Todo se calcula en hora de Argentina (`America/Argentina/Buenos_Aires`); Vercel corre en UTC.
+- El teléfono se guarda normalizado (`549XXXXXXXXXX`) y el evento lleva el link de WhatsApp.
+- El formulario tiene un campo trampa oculto (`website`) contra bots.
+- `/api/services` no expone profesionales ni IDs de calendario.
+- Guardar en `/admin` reescribe las tres pestañas en un solo pedido (`valueInputOption: RAW`) y antes verifica que la cuenta de servicio pueda ver el calendario de cada profesional activa.
+- Riesgo aceptado: dos reservas del mismo horario en el mismo segundo pueden duplicarse.
+- Cada reserva guarda en propiedades privadas del evento `client_phone`, `client_name` y `service_id`: así `/cancel` encuentra los turnos de un celular. Solo aparecen los turnos creados desde 2026-10-01 y los de profesionales activas.
+- `/api/my-bookings`, `/api/cancellations` y `/api/reschedules` reciben el celular en el cuerpo (POST), nunca en la URL, y antes de tocar un turno vuelven a buscar los de ese celular: la referencia sola no alcanza.
+- Reprogramar crea el turno nuevo antes de borrar el viejo: si el horario ya no está, el cliente conserva el suyo.
+- Riesgo aceptado por Tom: quien sepa el celular de un cliente puede cancelarle el turno. La lista no muestra el nombre del cliente.
+- Ventana de reserva (`shared/booking-rules.ts`): con al menos 2 h de anticipación y hasta 30 días adelante, contados en hora de Argentina. Vale para reservar y para reprogramar; el calendario del front no deja ir más allá.
+- Máximo 3 turnos futuros por celular al reservar; reprogramar no suma.
+- El catálogo (servicios, equipo y horarios) se guarda 1 minuto en memoria, porque Sheets permite 60 lecturas por minuto por cuenta. Los cambios de `/admin` se ven en `/booking` en hasta un minuto; `/admin` siempre lee la hoja. Los calendarios no se cachean.
 
 ## Decisiones tomadas
 
-- **Sin Next.js**: no hay SSR/SEO crítico, Supabase cubre el backend
-- **Mobile-first**: bottom nav para staff, wizard de 1 paso/pantalla para booking
-- **Sin pago online**: el pago es siempre en persona
-- **Sin notificaciones automáticas**: Google Calendar lo cubre para staff al configurar el OAuth; para clientes, botones manuales WhatsApp
-- **Sin selección de profesional en booking**: se eliminó para simplificar el flujo; el sistema auto-asigna al primer profesional libre para ese slot
+- **Google Sheets como DB**: decisión de Tom.
+- **Un solo admin (Tom) con contraseña**: sin logins de profesionales ni Google OAuth.
+- **Sin pago online ni notificaciones.**
+- **Cancelación por celular**: se sacó al simplificar y se volvió a sumar el 2026-10-01 a pedido de Tom, aceptando que el celular solo identifica al cliente.
+- **Sin selección de profesional en booking**: se auto-asigna.
+- **Simplicidad ante todo**: tests solo para la lógica de horarios, teléfono, validación, config y sesión. Nada de TDD exhaustivo ni mutation testing (pedido de Tom, 2026-09-30).
+- **Producción con una cuenta de Google del salón** (2026-10-01): la hoja, los calendarios y la cuenta de servicio quedan a nombre de Camila Carro, no de Tom ni de WBot.
+
+## Estado actual
+
+La rama `feat/google-sheets-backend` tiene la versión nueva completa, probada en DEV el 2026-09-30 con `vercel dev` y Chrome:
+- en `/admin`: login, alta de servicios, equipo y horarios, y el rechazo de un calendario no compartido;
+- en `/booking`: la reserva completa, el bloqueo por eventos cargados a mano (con horario y de todo el día), el 409 cuando el horario ya está tomado y el campo trampa.
+
+El 2026-10-01 se sumaron, probados igual:
+- `/cancel`: cancelar, reprogramar, la regla de 24 h, el rechazo de turnos de otro celular y el botón de WhatsApp;
+- las reglas de reserva: 2 h de anticipación, 30 días adelante y 3 turnos por celular;
+- el catálogo en memoria.
+
+Las credenciales falsas de los tests se reemplazaron en todo el historial de la rama, para que GitHub no bloquee el push.
+
+Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), protegido con Vercel Authentication; se actualiza con `vercel deploy` desde la rama. Producción se deploya sola desde `main` y sigue con la versión anterior hasta el corte.
+
+## Próximos pasos (corte a producción, con aprobación de Tom)
+
+1. Tom crea la cuenta de Google del salón.
+2. Con esa cuenta: proyecto de Google Cloud con las APIs de Sheets y Calendar, cuenta de servicio con clave, hoja PROD con las pestañas `services`, `professionals` y `availability`, y calendarios reales compartidos con la cuenta de servicio ("Hacer cambios en los eventos") y con cada profesional.
+3. Cargar las 4 variables en Vercel para **Production**, con contraseña de admin y secreto nuevos. Va antes del merge: sin ellas, producción queda caída.
+4. Push de la rama (cuenta `tomasgaitan14`), PR y merge a `main`, que dispara el deploy de producción.
+5. Cargar los datos reales en `/admin` y probar reservar, reprogramar y cancelar un turno; borrarlo.
+6. Cada profesional agrega su calendario en el celular y activa las notificaciones de eventos nuevos (la app no manda avisos).
+7. Rollback: Instant Rollback de Vercel al deploy anterior, que usa Supabase. Por eso, recién después de 1–2 semanas estable se borran las variables `VITE_SUPABASE_*` de Vercel, el proyecto `CamilaCarroEstetica` de la org `crmsolutions` (libera un slot) y su fila en `personal/CLAUDE.md`.
+8. Branding (logo y colores de Camila).
 
 ## Archivos clave
 
-- `src/App.tsx` — router con guards de auth
-- `src/hooks/useAuth.ts` — auth, Google OAuth, captura de refresh token
-- `src/hooks/useAppointments.ts` — query de turnos y disponibilidad
-- `src/lib/utils.ts` — generación de slots, helpers de fecha
-- `src/store/bookingStore.ts` — estado del flujo de reserva
-- `supabase/migrations/20260729000001_initial_schema.sql` — schema completo con RLS
-- `supabase/functions/sync-calendar/index.ts` — Edge Function para Google Calendar
+- `api/` — endpoints: `services`, `slots`, `bookings`, `my-bookings`, `cancellations`, `reschedules`, `session`, `admin/catalog`
+- `shared/booking-rules.ts` — reglas de reserva: anticipación, días adelante, tope por celular y las 24 h para cambios
+- `server/domain/booking-window.ts` — aplica la ventana de reserva y el tope por celular
+- `server/domain/client-changes.ts` — regla de 24 h y validación de los pedidos de `/cancel`
+- `src/pages/CancelPage.tsx` — cancelar y reprogramar
+- `server/booking.ts` — horarios disponibles con los calendarios y creación del turno
+- `server/catalog.ts` — lectura y escritura de la hoja, validación del catálogo
+- `server/calendar.ts` — Google Calendar: eventos ocupados, crear evento, verificar acceso
+- `server/session.ts` — login y cookie de admin
+- `server/domain/` — lógica pura: `slots`, `time`, `phone`, `booking-request`
+- `shared/types.ts` — tipos compartidos entre front y back
+- `src/components/admin/AdminLayout.tsx` y `src/pages/Admin*Page.tsx` — panel
+- `src/components/booking/` — flujo de reserva
 
-## Próximos pasos
+## Notas / contexto extra
 
-1. Ajustar branding (logo + colores reales de Camila)
-2. Camila configura su Instagram handle en Equipo → así aparece el botón Instagram en admin
-3. Camila corrige el precio de "limpieza facial" (actualmente "20000", debería ser "$ 20.000")
-4. Verificar Google Calendar integration (sync-calendar Edge Function) con tokens reales
+Desarrollo local: `vercel dev` levanta Vite y `/api` juntos y toma el `.env`. La regla de `vercel.json` excluye `/api`, las rutas con punto y las que empiezan con `@`: si no, en dev devuelve `index.html` en lugar de los módulos de Vite.
+
+La hoja se edita solo desde `/admin`. Si se escribe a mano, Google cambia el formato de las horas (`09:00` → `9:00`; la lectura lo tolera) y un ID inválido deja `/booking` caído.
+
+Pestañas de la hoja (la fila 1 son los encabezados, la app los escribe al guardar):
+
+| Pestaña | Columnas |
+|---------|----------|
+| `services` | `id`, `name`, `description`, `duration_minutes`, `active` |
+| `professionals` | `id`, `name`, `calendar_id`, `service_ids` (separados por coma), `active` |
+| `availability` | `professional_id`, `day_of_week` (0=domingo), `start_time`, `end_time` |
