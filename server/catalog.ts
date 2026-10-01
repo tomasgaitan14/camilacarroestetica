@@ -149,7 +149,23 @@ function availabilityFromRow([professionalId = '', dayOfWeek = '', startTime = '
   }
 }
 
-export async function loadCatalog(): Promise<Catalog> {
+// Sheets permite 60 lecturas por minuto por cuenta y cada visita a /booking lee el catálogo varias veces,
+// así que se guarda un minuto en memoria. Los turnos no pasan por acá: los calendarios se leen siempre.
+const CATALOG_CACHE_MS = 60_000
+let cachedCatalog: { catalog: Catalog, expiresAt: number } | undefined
+
+function remember(catalog: Catalog): Catalog {
+  cachedCatalog = { catalog, expiresAt: Date.now() + CATALOG_CACHE_MS }
+  return catalog
+}
+
+// fresh: /admin lee siempre la hoja, para no mostrar datos de hasta un minuto atrás
+export async function loadCatalog({ fresh = false } = {}): Promise<Catalog> {
+  if (!fresh && cachedCatalog && cachedCatalog.expiresAt > Date.now()) return cachedCatalog.catalog
+  return remember(await readCatalog())
+}
+
+async function readCatalog(): Promise<Catalog> {
   const tabs = await readTabs()
   const raw = {
     services: tabs.services.filter(row => !isBlank(row)).map(serviceFromRow),
@@ -194,6 +210,7 @@ export async function saveCatalog(catalog: Catalog): Promise<void> {
   })
   // RAW: lo que se escribe queda como texto, así un nombre que empieza con '=' no se vuelve fórmula
   await googleFetch(sheetUrl('values:batchUpdate'), { method: 'POST', body: { valueInputOption: 'RAW', data } })
+  remember(catalog)
 }
 
 // Sin acceso al calendario, /booking fallaría para todos: se frena al guardar

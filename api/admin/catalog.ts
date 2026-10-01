@@ -10,7 +10,7 @@ function withServiceAccount(catalog: Catalog): AdminCatalog {
 
 export const GET = withErrors(async request => {
   requireAdmin(request)
-  return json(withServiceAccount(await loadCatalog()))
+  return json(withServiceAccount(await loadCatalog({ fresh: true })))
 })
 
 // Reemplaza el catálogo entero: con un solo admin no hay ediciones en paralelo que pisar
