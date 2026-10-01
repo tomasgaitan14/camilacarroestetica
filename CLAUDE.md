@@ -63,6 +63,8 @@ VITE_WHATSAPP_NOTICE=         # "true" muestra el aviso en /booking (no es secre
 - **Recordatorio:**
   - `POST /api/cron/reminders`, con `Authorization: Bearer CRON_SECRET`, manda el de los turnos reservados desde la web que empiezan en menos de 2 h y marca el evento con `reminder_sent_at`.
   - Lo dispara `.github/workflows/whatsapp-reminders.yml` cada 15 minutos. GitHub solo programa los workflows que están en `main`, y los desactiva después de 60 días sin actividad en el repo.
+  - Las corridas programadas usan la copia del workflow que está en `main`. Un cambio en `dev` cuenta recién cuando llega a `main`; antes se prueba con `gh workflow run whatsapp-reminders.yml --ref dev`.
+  - Pushear cambios en `.github/workflows/` necesita un token con el permiso `workflow`. El de `gh` lo tiene; el que usa git por defecto, no (ver `personal/CLAUDE.md`).
   - Los secretos de GitHub son `REMINDERS_URL` (el preview de la rama `dev`), `CRON_SECRET` y `VERCEL_AUTOMATION_BYPASS_SECRET`, la clave de Vercel que permite pasar la protección de los previews.
   - La corrida falla si la app no responde 200. Antes quedaba en verde aunque Vercel frenara el pedido: si la clave de bypass no sirve, Vercel responde 302 al login y curl no lo toma como error.
 - **Para producción con Meta:** se reemplaza la pieza de envío en `server/messaging.ts` por la Cloud API de Meta con las plantillas aprobadas. El plan está en la memoria de Claude.
@@ -111,7 +113,7 @@ El 2026-10-01 se sumaron, probados igual:
 
 Las credenciales falsas de los tests se reemplazaron en todo el historial de la rama, para que GitHub no bloquee el push.
 
-Hay un preview en Vercel con las variables DEV (Preview, todas las ramas), protegido con Vercel Authentication; se actualiza con `vercel deploy` desde una rama.
+El preview de la rama `dev`, https://camilacarro-git-dev-tomasg-projects.vercel.app, tiene las variables DEV (Preview, todas las ramas) y la simulación de WhatsApp. Está protegido con Vercel Authentication y se vuelve a deployar solo con cada push a `dev`.
 
 **En producción desde el 2026-10-01** (PR #1). El smoke test pasó: la API arranca con la configuración de producción y la hoja de producción se lee bien, todavía vacía. El paso a paso para replicar la app con otro cliente está en `docs/nuevo-cliente.md`.
 
